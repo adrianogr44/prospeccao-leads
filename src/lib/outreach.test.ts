@@ -127,7 +127,7 @@ describe("marcadores", () => {
   });
   it("substitui os demais marcadores", () => {
     const out = buildOutreachMessage(base, withTemplate("{remetente}|{minha_empresa}|{empresa}|{cidade}|{categoria}|{prazo}"));
-    expect(out).toBe("Adriano|LançaSite|Padaria Bom Pão|Aracaju|padaria|7");
+    expect(out).toBe("Adriano|SitesCraft|Padaria Bom Pão|Aracaju|padaria|7");
   });
   it("marcador desconhecido fica como está", () => {
     expect(buildOutreachMessage(base, withTemplate("oi {nada} e {empresa}"))).toBe("oi {nada} e Padaria Bom Pão");
@@ -138,7 +138,7 @@ describe("marcadores", () => {
   it("modelo padrão gera mensagem completa sem marcadores sobrando", () => {
     const out = buildOutreachMessage(base, S);
     expect(out).not.toMatch(/\{[a-z_]+\}/);
-    expect(out).toContain("Aqui é Adriano, da LançaSite.");
+    expect(out).toContain("Aqui é Adriano, da SitesCraft.");
     expect(out).toContain("Landing Page Completa por R$ 697, com entrega em até 7 dias.");
     expect(out).toContain("O valor já inclui domínio .com.br e hospedagem no primeiro ano.");
   });
