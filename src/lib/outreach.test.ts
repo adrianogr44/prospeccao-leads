@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isPhoneWithAreaCode, leadPatchSchema } from "./contract";
 import {
   DEFAULT_OUTREACH_SETTINGS,
   buildOutreachMessage,
@@ -196,5 +197,18 @@ describe("links", () => {
       "mailto:a@b.com?subject=Site%20para%20a%20Padaria%20Bom%20P%C3%A3o&body=oi",
     );
     expect(outreachUrl(base, "oi")).toBeNull();
+  });
+});
+
+describe("leadPatchSchema.whatsapp", () => {
+  it("aceita número com DDD, com ou sem 55, e null para apagar", () => {
+    expect(leadPatchSchema.safeParse({ whatsapp: "(19) 99999-8888" }).success).toBe(true);
+    expect(leadPatchSchema.safeParse({ whatsapp: "+55 19 3242-8929" }).success).toBe(true);
+    expect(leadPatchSchema.safeParse({ whatsapp: null }).success).toBe(true);
+  });
+  it("recusa número sem DDD ou longo demais", () => {
+    expect(leadPatchSchema.safeParse({ whatsapp: "99999-8888" }).success).toBe(false);
+    expect(leadPatchSchema.safeParse({ whatsapp: "55 19 99999-8888 123" }).success).toBe(false);
+    expect(isPhoneWithAreaCode("abc")).toBe(false);
   });
 });

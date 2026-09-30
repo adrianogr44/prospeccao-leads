@@ -131,7 +131,9 @@ export const saveLeadNotes = (id: string, notes: string | null) =>
   send<LeadDTO>("PATCH", `/api/leads/${encodeURIComponent(id)}`, { notes });
 export const setLeadContacted = (id: string, contacted: boolean) =>
   send<LeadDTO>("PATCH", `/api/leads/${encodeURIComponent(id)}`, { contacted });
-export const saveOutreachSettings = (settings: OutreachSettings) =>
+export const saveLeadWhatsapp = (id: string, whatsapp: string | null) =>
+  send<LeadDTO>("PATCH", `/api/leads/${encodeURIComponent(id)}`, { whatsapp });
+export const saveOutreachSettings =(settings: OutreachSettings) =>
   send<OutreachSettings>("PUT", outreachSettingsPath, settings);
 export const deleteLead = (id: string) =>
   send<void>("DELETE", `/api/leads/${encodeURIComponent(id)}`);
