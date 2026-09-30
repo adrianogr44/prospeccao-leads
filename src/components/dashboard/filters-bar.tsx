@@ -108,6 +108,7 @@ function numberOrUndefined(raw: string, min: number, max: number, integer: boole
 const ADVANCED_KEYS = [
   "hasWhatsapp",
   "hasInstagram",
+  "contacted",
   "minRating",
   "minReviews",
   "maxReviews",
@@ -202,6 +203,13 @@ export function FiltersBar({
             value={filters.hasInstagram}
             options={yesNo}
             onChange={(v) => onChange({ hasInstagram: v === "yes" || v === "no" ? v : undefined })}
+          />
+          <SelectFilter
+            id="f-contacted"
+            label="Contatado"
+            value={filters.contacted}
+            options={yesNo}
+            onChange={(v) => onChange({ contacted: v === "yes" || v === "no" ? v : undefined })}
           />
           <SelectFilter
             id="f-stars"

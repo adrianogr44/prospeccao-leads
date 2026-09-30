@@ -71,13 +71,15 @@ describe.skipIf(!enabled)("upsert + enriquecimento (banco descartável)", () => 
     expect(JSON.parse(lead.scoreReasons)).toContain("Não tem site");
   });
 
-  it("mesma empresa outra vez: um lead só, updatedCount sobe, notas preservadas", async () => {
-    await db.lead.updateMany({ where: { externalId: "g1" }, data: { notes: "ligar amanhã" } });
+  it("mesma empresa outra vez: um lead só, updatedCount sobe, notas e contactedAt preservados", async () => {
+    const contacted = new Date("2026-09-30T12:00:00Z");
+    await db.lead.updateMany({ where: { externalId: "g1" }, data: { notes: "ligar amanhã", contactedAt: contacted } });
     const stats = await upsertPlaces(s2, [place({ rating: 4.8 })]);
     expect(stats).toMatchObject({ found: 1, created: 0, updated: 1 });
     expect(await db.lead.count()).toBe(1);
     const lead = await db.lead.findFirstOrThrow({ where: { externalId: "g1" } });
     expect(lead.notes).toBe("ligar amanhã");
+    expect(lead.contactedAt?.toISOString()).toBe(contacted.toISOString());
     expect(lead.rating).toBe(4.8);
     // Repetir na mesma pesquisa não conta de novo
     expect(await upsertPlaces(s2, [place({ rating: 4.8 })])).toMatchObject({ found: 0 });

@@ -49,6 +49,7 @@ export const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Situação da empresa", value: (l) => l.businessStatus },
   { header: "Fonte", value: (l) => SOURCE_LABEL[l.source] },
   { header: "Anotações", value: (l) => l.notes },
+  { header: "Contatado em", value: (l) => l.contactedAt },
   { header: "Atualizado em", value: (l) => l.updatedAt },
 ];
 

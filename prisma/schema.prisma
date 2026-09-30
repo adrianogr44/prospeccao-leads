@@ -49,6 +49,7 @@ model Lead {
   tiktok        String?
   ownerName     String?
   notes         String?
+  contactedAt   DateTime? // quando a proposta foi enviada; nunca é apagado por nova pesquisa
 
   score        Int    @default(0) // 0-100
   stars        Int    @default(1) // 1-5
@@ -144,4 +145,10 @@ model Blocked {
   createdAt  DateTime @default(now())
 
   @@id([source, externalId])
+}
+
+// Configurações do app em pares chave/valor (JSON serializado). Hoje: "outreach".
+model Setting {
+  key   String @id
+  value String
 }

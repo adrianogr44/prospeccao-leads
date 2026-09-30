@@ -29,6 +29,8 @@ export function buildLeadWhere(f: LeadFilters): Prisma.LeadWhereInput {
   if (f.hasWhatsapp === "no") and.push({ whatsapp: null });
   if (f.hasInstagram === "yes") and.push({ instagram: { not: null } });
   if (f.hasInstagram === "no") and.push({ instagram: null });
+  if (f.contacted === "yes") and.push({ contactedAt: { not: null } });
+  if (f.contacted === "no") and.push({ contactedAt: null });
   if (f.minRating !== undefined) and.push({ rating: { gte: f.minRating } });
   if (f.maxRating !== undefined) and.push({ rating: { lte: f.maxRating } });
   if (f.minReviews !== undefined) and.push({ reviewCount: { gte: f.minReviews } });

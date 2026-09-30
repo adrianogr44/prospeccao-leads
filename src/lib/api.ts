@@ -4,6 +4,7 @@ import type {
   LeadFilters,
   LeadListResponse,
   MetaResponse,
+  OutreachSettings,
   ScheduleDTO,
   ScheduleInput,
   SearchDTO,
@@ -110,6 +111,7 @@ function withQuery(path: string, params: object): string {
 // ---------- Caminhos (para uso com useApiGet) ----------
 
 export const metaPath = "/api/meta";
+export const outreachSettingsPath = "/api/settings/outreach";
 export const searchesPath = "/api/searches";
 export const schedulesPath = "/api/schedules";
 export const leadsPath = (params: LeadListParams) => withQuery("/api/leads", params);
@@ -127,6 +129,10 @@ export const getStats = (filters: LeadFilters, signal?: AbortSignal) =>
 
 export const saveLeadNotes = (id: string, notes: string | null) =>
   send<LeadDTO>("PATCH", `/api/leads/${encodeURIComponent(id)}`, { notes });
+export const setLeadContacted = (id: string, contacted: boolean) =>
+  send<LeadDTO>("PATCH", `/api/leads/${encodeURIComponent(id)}`, { contacted });
+export const saveOutreachSettings = (settings: OutreachSettings) =>
+  send<OutreachSettings>("PUT", outreachSettingsPath, settings);
 export const deleteLead = (id: string) =>
   send<void>("DELETE", `/api/leads/${encodeURIComponent(id)}`);
 

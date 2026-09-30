@@ -21,7 +21,7 @@ export const DEFAULT_VIEW: ViewState = {
 };
 
 const TEXT_KEYS = ["q", "city", "state", "category", "searchId"] as const;
-const YES_NO_KEYS = ["hasSite", "hasWhatsapp", "hasInstagram"] as const;
+const YES_NO_KEYS = ["hasSite", "hasWhatsapp", "hasInstagram", "contacted"] as const;
 
 function int(value: string | null, min: number, max: number): number | undefined {
   if (value === null || value.trim() === "") return undefined;

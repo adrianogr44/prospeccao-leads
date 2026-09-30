@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { leadsPath, metaPath, searchesPath, statsPath, type LeadSort } from "@/lib/api";
+import { leadsPath, metaPath, outreachSettingsPath, searchesPath, statsPath, type LeadSort } from "@/lib/api";
 import type {
   LeadDTO,
   LeadFilters,
   LeadListResponse,
   MetaResponse,
+  OutreachSettings,
   SearchDTO,
   StatsResponse,
 } from "@/lib/contract";
@@ -40,6 +41,7 @@ export function Dashboard() {
 
   const meta = useApiGet<MetaResponse>(metaPath);
   const searches = useApiGet<SearchDTO[]>(searchesPath);
+  const outreach = useApiGet<OutreachSettings>(outreachSettingsPath);
   const stats = useApiGet<StatsResponse>(statsPath(view.filters));
   const leads = useApiGet<LeadListResponse>(
     leadsPath({ ...view.filters, page: view.page, pageSize: view.pageSize, sort: view.sort, dir: view.dir }),
@@ -62,6 +64,14 @@ export function Dashboard() {
   useEffect(() => {
     if (lastPage !== undefined && view.page > lastPage) setView({ ...view, page: lastPage });
   }, [lastPage, view, setView]);
+
+  // Atualiza o lead aberto e a linha da tabela depois de salvar nota ou marcar contato.
+  const applyUpdate = (updated: LeadDTO) => {
+    setSelected((current) => (current?.id === updated.id ? updated : current));
+    leads.mutate((current) =>
+      current ? { ...current, items: current.items.map((l) => (l.id === updated.id ? updated : l)) } : current,
+    );
+  };
 
   const reloadAll = () => {
     leads.reload();
@@ -135,7 +145,9 @@ export function Dashboard() {
               sort={view.sort}
               dir={view.dir}
               onSort={changeSort}
+              settings={outreach.data}
               onSelect={setSelected}
+              onUpdated={applyUpdate}
               busy={leads.loading}
             />
             <Pagination
@@ -153,14 +165,9 @@ export function Dashboard() {
         <LeadDrawer
           lead={selected}
           onClose={() => setSelected(null)}
-          onNotesSaved={(updated) => {
-            setSelected(updated);
-            leads.mutate((current) =>
-              current
-                ? { ...current, items: current.items.map((l) => (l.id === updated.id ? updated : l)) }
-                : current,
-            );
-          }}
+          settings={outreach.data}
+          settingsError={outreach.error}
+          onUpdated={applyUpdate}
           onDeleted={() => {
             setSelected(null);
             reloadAll();

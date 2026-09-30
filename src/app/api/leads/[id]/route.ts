@@ -10,10 +10,13 @@ export const dynamic = "force-dynamic";
 export function PATCH(req: NextRequest, { params }: IdContext) {
   return handle(async () => {
     const { id } = await params;
-    const { notes } = await parseBody(req, leadPatchSchema);
+    const { notes, contacted } = await parseBody(req, leadPatchSchema);
     const row = await db.lead.update({
       where: { id },
-      data: { notes: notes?.trim() ? notes.trim() : null },
+      data: {
+        ...(notes !== undefined && { notes: notes?.trim() ? notes.trim() : null }),
+        ...(contacted !== undefined && { contactedAt: contacted ? new Date() : null }),
+      },
       select: LEAD_SELECT,
     });
     return Response.json(toLeadDTO(row));

@@ -2,11 +2,12 @@
 
 import { useState, type ReactNode } from "react";
 import { deleteLead, errorMessage, saveLeadNotes } from "@/lib/api";
-import type { LeadDTO } from "@/lib/contract";
+import type { LeadDTO, OutreachSettings } from "@/lib/contract";
 import { formatDateTime, formatNumber, formatRating, externalUrl, hostOf, instagramUrl, whatsappUrl } from "@/lib/format";
 import { ExternalIcon, MapPinIcon, WhatsappIcon } from "../icons";
 import { SiteBadge, Stars } from "../lead-ui";
 import { Modal } from "../modal";
+import { OutreachBlock } from "../outreach";
 import { Badge, Button, buttonStyles, inputClass } from "../ui";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -132,13 +133,17 @@ function DeleteLead({ lead, onDeleted }: { lead: LeadDTO; onDeleted: () => void 
 
 export function LeadDrawer({
   lead,
+  settings,
+  settingsError,
   onClose,
-  onNotesSaved,
+  onUpdated,
   onDeleted,
 }: {
   lead: LeadDTO;
+  settings: OutreachSettings | undefined;
+  settingsError: string | null;
   onClose: () => void;
-  onNotesSaved: (lead: LeadDTO) => void;
+  onUpdated: (lead: LeadDTO) => void;
   onDeleted: (lead: LeadDTO) => void;
 }) {
   const place = [lead.address, lead.neighborhood, [lead.city, lead.state].filter(Boolean).join("/"), lead.postalCode]
@@ -165,6 +170,8 @@ export function LeadDrawer({
             </a>
           )}
         </div>
+
+        <OutreachBlock lead={lead} settings={settings} settingsError={settingsError} onUpdated={onUpdated} />
 
         <section aria-labelledby="motivos">
           <h3 id="motivos" className="mb-1 text-xs font-semibold text-muted uppercase">
@@ -265,7 +272,7 @@ export function LeadDrawer({
           </dl>
         </section>
 
-        <Notes lead={lead} onSaved={onNotesSaved} />
+        <Notes lead={lead} onSaved={onUpdated} />
 
         <div className="border-t border-line pt-4">
           <DeleteLead lead={lead} onDeleted={() => onDeleted(lead)} />

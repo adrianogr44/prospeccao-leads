@@ -100,6 +100,8 @@ export interface LeadDTO {
   tiktok: string | null;
   ownerName: string | null;
   notes: string | null;
+  /** ISO da marcação "contatado"; null se nunca abordada */
+  contactedAt: string | null;
   score: number;
   stars: number;
   scoreReasons: string[];
@@ -120,6 +122,7 @@ export const leadFiltersSchema = z.object({
   hasSite: triState, // "no" = NONE ou SOCIAL_ONLY
   hasWhatsapp: triState,
   hasInstagram: triState,
+  contacted: triState, // "yes" = já abordada
   minRating: z.coerce.number().min(0).max(5).optional(),
   maxRating: z.coerce.number().min(0).max(5).optional(),
   minReviews: z.coerce.number().int().min(0).optional(),
@@ -153,7 +156,15 @@ export interface LeadListResponse {
   pageSize: number;
 }
 
-export const leadPatchSchema = z.object({ notes: z.string().max(2000).nullable() });
+export const leadPatchSchema = z
+  .object({
+    notes: z.string().max(2000).nullable().optional(),
+    /** true grava agora como data do contato; false limpa */
+    contacted: z.boolean().optional(),
+  })
+  .refine((v) => v.notes !== undefined || v.contacted !== undefined, {
+    message: "Informe notes ou contacted.",
+  });
 
 // ---------- Indicadores ----------
 
@@ -227,6 +238,53 @@ export interface ScheduleDTO extends ScheduleInput {
   createdAt: string;
 }
 
+// ---------- Abordagem (Story 1.4) ----------
+
+const amount = z
+  .number({ error: "Informe um valor em reais." })
+  .min(0, "O valor não pode ser negativo.")
+  .max(1_000_000, "Valor alto demais.");
+
+export const outreachPlanSchema = z.object({
+  name: z.string().trim().min(1, "Dê um nome ao plano.").max(60),
+  price: amount,
+  description: z.string().trim().max(300),
+});
+export type OutreachPlan = z.infer<typeof outreachPlanSchema>;
+
+export const outreachHostingSchema = z.object({
+  provider: z.string().trim().min(1, "Informe o nome da hospedagem.").max(60),
+  monthlyPrice: amount,
+  renewalMonthlyPrice: amount,
+  url: z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => /^https?:\/\/\S+$/i.test(v), "Use um link que comece com http:// ou https://."),
+});
+
+export const outreachDomainSchema = z.object({
+  label: z.string().trim().min(1, "Descreva o domínio.").max(80),
+  yearlyPrice: amount,
+});
+
+export const outreachSettingsSchema = z.object({
+  companyName: z.string().trim().min(1, "Informe o nome da empresa.").max(80),
+  senderName: z.string().trim().min(1, "Informe o nome de quem envia.").max(80),
+  plans: z.array(outreachPlanSchema).min(1, "Cadastre pelo menos um plano.").max(5, "Use no máximo 5 planos."),
+  /** true: o valor dos planos já embute o 1º ano de hospedagem e domínio */
+  includeHostingAndDomain: z.boolean(),
+  hosting: outreachHostingSchema,
+  domain: outreachDomainSchema,
+  deliveryDays: z
+    .number({ error: "Informe o prazo em dias." })
+    .int("Use um número inteiro de dias.")
+    .min(1, "O prazo mínimo é 1 dia.")
+    .max(365, "O prazo máximo é 365 dias."),
+  template: z.string().trim().min(1, "O modelo de mensagem não pode ficar vazio.").max(3000),
+});
+export type OutreachSettings = z.infer<typeof outreachSettingsSchema>;
+
 // ---------- Erro padrão ----------
 
 export interface ApiError {
@@ -239,8 +297,10 @@ export interface ApiError {
  *
  * GET    /api/meta                      -> MetaResponse
  * GET    /api/leads?{LeadListQuery}     -> LeadListResponse
- * PATCH  /api/leads/:id   {notes}       -> LeadDTO
+ * PATCH  /api/leads/:id   {notes?, contacted?} -> LeadDTO
  * DELETE /api/leads/:id                 -> 204 (exclui e bloqueia reimportação)
+ * GET    /api/settings/outreach         -> OutreachSettings (padrão se nunca salvo)
+ * PUT    /api/settings/outreach {OutreachSettings} -> OutreachSettings
  * GET    /api/stats?{LeadFilters}       -> StatsResponse
  * GET    /api/export?{filtros}&format=  -> arquivo (csv | xlsx | json)
  * POST   /api/export/sheets             -> SheetsExportResponse

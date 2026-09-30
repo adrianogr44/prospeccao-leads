@@ -1,13 +1,14 @@
 "use client";
 
-import type { LeadDTO } from "@/lib/contract";
+import type { LeadDTO, OutreachSettings } from "@/lib/contract";
 import type { LeadSort } from "@/lib/api";
 import { PAGE_SIZES } from "@/lib/view-state";
 import { formatNumber, formatRating, hostOf } from "@/lib/format";
 import { cx } from "@/lib/cx";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, SortIcon } from "../icons";
 import { ContactIcons, SiteBadge, Stars } from "../lead-ui";
-import { Button, Skeleton } from "../ui";
+import { ProposalButton } from "../outreach";
+import { Badge, Button, Skeleton } from "../ui";
 
 interface Column {
   label: string;
@@ -21,7 +22,7 @@ const columns: Column[] = [
   { label: "Local", sort: "city", className: "w-48" },
   { label: "Site", className: "w-40" },
   { label: "Nota", sort: "rating", className: "w-28" },
-  { label: "Contato", className: "w-36" },
+  { label: "Contato", className: "w-40" },
 ];
 
 function SortableHeader({
@@ -74,7 +75,17 @@ function SortableHeader({
   );
 }
 
-function Row({ lead, onSelect }: { lead: LeadDTO; onSelect: (lead: LeadDTO) => void }) {
+function Row({
+  lead,
+  settings,
+  onSelect,
+  onUpdated,
+}: {
+  lead: LeadDTO;
+  settings: OutreachSettings | undefined;
+  onSelect: (lead: LeadDTO) => void;
+  onUpdated: (lead: LeadDTO) => void;
+}) {
   const place = [lead.neighborhood, [lead.city, lead.state].filter(Boolean).join("/")]
     .filter(Boolean)
     .join(", ");
@@ -128,7 +139,15 @@ function Row({ lead, onSelect }: { lead: LeadDTO; onSelect: (lead: LeadDTO) => v
         )}
       </td>
       <td className="px-3 py-2">
-        <ContactIcons lead={lead} />
+        <span className="inline-flex items-center gap-0.5">
+          <ContactIcons lead={lead} />
+          <ProposalButton lead={lead} settings={settings} onUpdated={onUpdated} />
+        </span>
+        {lead.contactedAt && (
+          <p className="mt-0.5">
+            <Badge tone="accent">Contatado</Badge>
+          </p>
+        )}
       </td>
     </tr>
   );
@@ -149,14 +168,18 @@ export function LeadsTable({
   sort,
   dir,
   onSort,
+  settings,
   onSelect,
+  onUpdated,
   busy,
 }: {
   items: LeadDTO[];
   sort: LeadSort;
   dir: "asc" | "desc";
   onSort: (field: LeadSort) => void;
+  settings: OutreachSettings | undefined;
   onSelect: (lead: LeadDTO) => void;
+  onUpdated: (lead: LeadDTO) => void;
   busy: boolean;
 }) {
   return (
@@ -177,7 +200,7 @@ export function LeadsTable({
         </thead>
         <tbody>
           {items.map((lead) => (
-            <Row key={lead.id} lead={lead} onSelect={onSelect} />
+            <Row key={lead.id} lead={lead} settings={settings} onSelect={onSelect} onUpdated={onUpdated} />
           ))}
         </tbody>
       </table>

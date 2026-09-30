@@ -11,6 +11,14 @@ const dateTimeFormat = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit",
 });
 
+const dateFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+export function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "—" : dateFormat.format(date);
+}
+
 export function formatNumber(value: number): string {
   return numberFormat.format(value);
 }

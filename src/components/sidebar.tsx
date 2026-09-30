@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/lib/cx";
-import { CalendarIcon, DashboardIcon, SearchIcon } from "./icons";
+import { CalendarIcon, DashboardIcon, SearchIcon, SettingsIcon } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
 
 const links = [
   { href: "/", label: "Dashboard", Icon: DashboardIcon },
   { href: "/pesquisas", label: "Pesquisas", Icon: SearchIcon },
   { href: "/agendamentos", label: "Agendamentos", Icon: CalendarIcon },
+  { href: "/configuracoes", label: "Configurações", Icon: SettingsIcon },
 ] as const;
 
 export function Sidebar() {
