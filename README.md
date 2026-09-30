@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prospecção de Leads
 
-## Getting Started
+Ferramenta local para encontrar empresas que precisam de um site novo. Pesquisa por segmento e cidade, analisa o site de cada empresa, dá uma nota de oportunidade de 1 a 5 estrelas e exporta para planilha.
 
-First, run the development server:
+Fontes de dados: **Google Places API** (oficial) e **OpenStreetMap**. Não faz raspagem do Google Maps.
+
+## Instalação
+
+Requisito: Node.js 20 ou mais novo.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env        # no Windows: copy .env.example .env
+npm run db:migrate
+npm run build
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Para desenvolver: `npm run dev`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Configuração (`.env`)
 
-## Learn More
+| Variável | Para quê | Obrigatória |
+|---|---|---|
+| `DATABASE_URL` | Caminho do banco SQLite | Sim (já vem preenchida) |
+| `CONTACT_EMAIL` | Identificação enviada ao OpenStreetMap e aos sites analisados | Sim |
+| `GOOGLE_PLACES_API_KEY` | Busca no Google. Sem ela, o sistema usa só o OpenStreetMap | Não |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Exportação para Google Sheets | Não |
 
-To learn more about Next.js, take a look at the following resources:
+### Chave do Google Places
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Entre em https://console.cloud.google.com e crie um projeto.
+2. Ative o faturamento (o Google exige cartão, mesmo com cota gratuita).
+3. Em "APIs e serviços", ative **Places API (New)**.
+4. Em "Credenciais", crie uma chave de API e restrinja à Places API (New).
+5. Cole em `GOOGLE_PLACES_API_KEY` e reinicie o sistema.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Custo: cada consulta devolve até 20 empresas e é cobrada na faixa mais cara da Places API, porque pede telefone e site. O histórico de pesquisas mostra quantas consultas cada uma fez. Defina um limite de gasto no Google Cloud antes de rodar pesquisas grandes.
 
-## Deploy on Vercel
+### Google Sheets
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. No mesmo projeto do Google Cloud, ative **Google Sheets API**.
+2. Crie uma conta de serviço e baixe a chave JSON.
+3. Cole o JSON inteiro, em uma linha, em `GOOGLE_SERVICE_ACCOUNT_JSON`.
+4. Compartilhe a planilha de destino com o e-mail da conta de serviço, como Editor.
+5. No dashboard: Exportar > Google Sheets, e informe o link da planilha. Cada exportação cria uma aba nova.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Como usar
+
+1. **Pesquisas**: informe categoria, cidade, estado e raio. A pesquisa roda em segundo plano, pode ser pausada e continua sozinha se o sistema for reiniciado.
+2. **Dashboard**: as melhores oportunidades aparecem primeiro. Use os filtros e clique em uma empresa para ver os detalhes e os motivos da nota.
+3. **Exportar**: Excel, CSV, JSON ou Google Sheets, sempre com os filtros aplicados.
+4. **Agendamentos**: repete uma pesquisa todo dia, semana ou mês. Só roda com o sistema aberto.
+
+## Como a nota é calculada
+
+| Situação | Estrelas |
+|---|---|
+| Sem site, só rede social ou site antigo | 5 |
+| Site fora do ar | 4 a 5 |
+| Site moderno | 2 a 3 |
+
+Poucas avaliações, falta de WhatsApp e Instagram sem site aumentam a nota. Os pesos ficam em `src/server/scoring/score.ts`.
+
+"Site antigo" é uma estimativa: o sistema procura sinais como falta de versão para celular, falta de HTTPS e ano de copyright desatualizado. Os sinais encontrados aparecem no detalhe da empresa.
+
+## Limites
+
+- **WhatsApp** só é preenchido quando a empresa publica um link de WhatsApp. Telefone celular aparece como "Celular".
+- **Nome do proprietário** quase nunca está disponível em fontes públicas.
+- **OpenStreetMap** não tem nota nem avaliações e cobre menos empresas pequenas.
+- Os dados do Google devem ser renovados periodicamente (use os agendamentos).
+
+## Privacidade (LGPD)
+
+O sistema guarda apenas informações comerciais que a própria empresa publicou. Excluir uma empresa no dashboard apaga os dados e impede que ela volte em pesquisas futuras. O sistema não tem login: use só no seu computador e não exponha na internet.
+
+## Docker (opcional)
+
+```bash
+docker compose up --build
+```
+
+## Desenvolvimento
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+```
+
+Documentação em `docs/`: brief, PRD, especificação de interface e arquitetura.
+
+Estrutura:
+
+```
+prisma/              modelos do banco
+src/lib/contract.ts  contrato da API
+src/app/             páginas e rotas /api
+src/components/      interface
+src/server/          coleta, análise de site, score, exportação, agendador
+```
