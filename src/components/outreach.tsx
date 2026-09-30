@@ -24,6 +24,21 @@ function shortLabel(target: OutreachTarget): string {
   return target.kind === "whatsapp" && target.confirmed ? "Enviar proposta" : "Tentar WhatsApp";
 }
 
+/**
+ * Nome acessível do botão da linha. Leva a empresa: 36 links "Enviar proposta" iguais não dizem nada ao leitor de tela.
+ * Começa pelo texto visível ("Enviar proposta", "Tentar WhatsApp", "Enviar e-mail", "Reenviar").
+ */
+export function rowSendLabel(lead: Pick<LeadDTO, "name">, target: OutreachTarget, contacted: boolean): string | null {
+  if (target.kind === "none") return null;
+  if (target.kind === "email") {
+    return contacted ? `Reenviar proposta para ${lead.name} por e-mail` : `Enviar e-mail para ${lead.name}`;
+  }
+  const newTab = " (abre em nova aba)";
+  if (contacted) return `Reenviar proposta para ${lead.name} no WhatsApp${newTab}`;
+  if (target.confirmed) return `Enviar proposta para ${lead.name} no WhatsApp${newTab}`;
+  return `Tentar WhatsApp para ${lead.name}, ${target.landline ? "telefone fixo" : "celular"}${newTab}`;
+}
+
 /** WhatsApp abre em nova aba; mailto abre o programa de e-mail sem trocar de página. */
 export const linkTarget = (target: OutreachTarget) =>
   target.kind === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {};
@@ -61,7 +76,7 @@ export function ProposalButton({
   }
   const target = outreachTarget(lead);
   const url = outreachUrl(lead, buildOutreachMessage(lead, settings));
-  const size = compact ? "size-11 p-0" : undefined;
+  const size = compact ? "touch" : "sm";
 
   if (!url || target.kind === "none") {
     return (
@@ -69,12 +84,12 @@ export function ProposalButton({
         type="button"
         tabIndex={tabIndex}
         title="Sem contato publicado. Informe o WhatsApp para enviar a proposta."
-        aria-label={compact ? `Adicionar WhatsApp de ${lead.name}` : undefined}
+        aria-label={`Adicionar WhatsApp de ${lead.name}`}
         onClick={(event) => {
           event.stopPropagation();
           onAddWhatsapp(lead);
         }}
-        className={buttonStyles("ghost", "sm", size)}
+        className={buttonStyles("ghost", size)}
       >
         <PlusIcon />
         {!compact && "Adicionar WhatsApp"}
@@ -92,8 +107,8 @@ export function ProposalButton({
       data-send="row"
       data-lead-id={lead.id}
       title={sendLabel(target) ?? undefined}
-      aria-label={compact ? `${text} para ${lead.name}` : undefined}
-      className={buttonStyles(sendVariant(lead, target), "sm", size)}
+      aria-label={rowSendLabel(lead, target, contacted) ?? undefined}
+      className={buttonStyles(sendVariant(lead, target), size)}
       onClick={(event: MouseEvent) => {
         event.stopPropagation();
         onSend(lead);
@@ -101,7 +116,6 @@ export function ProposalButton({
     >
       {contacted ? <RefreshIcon /> : <SendIcon target={target} />}
       {!compact && text}
-      {target.kind === "whatsapp" && <span className="sr-only"> (abre em nova aba)</span>}
     </a>
   );
 }
@@ -176,6 +190,7 @@ export function WhatsappField({
           autoComplete="off"
           value={value}
           data-autofocus={autoFocusField ? "" : undefined}
+          data-dirty={changed ? "true" : undefined}
           placeholder="(19) 99999-8888"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "outreach-whatsapp-error" : "outreach-whatsapp-hint"}
@@ -186,13 +201,13 @@ export function WhatsappField({
           onKeyDown={(event) => {
             if (event.key === "Enter" && changed) void save();
           }}
-          className={cx(inputClass, "w-48 flex-1")}
+          className={cx(inputClass, "w-48 flex-1 max-md:h-11")}
         />
-        <Button onClick={save} disabled={!changed} loading={busy}>
+        <Button className="max-md:h-11" onClick={save} disabled={!changed} loading={busy}>
           Salvar número
         </Button>
         {onCancel && (
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="ghost" className="max-md:h-11" onClick={onCancel}>
             Cancelar
           </Button>
         )}

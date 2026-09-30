@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { Skeleton } from "@/components/ui";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: { absolute: "Dashboard · Prospecção de Leads" } };
 
 function DashboardFallback() {
   return (

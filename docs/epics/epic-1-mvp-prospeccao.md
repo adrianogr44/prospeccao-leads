@@ -13,6 +13,8 @@ Entregar a ferramenta local completa descrita no PRD: coleta em volume por fonte
 | 1.1 | Coleta, dedupe e fila de pesquisas | Implementada |
 | 1.2 | Enriquecimento, score, exportação e agendamento | Implementada |
 | 1.3 | Dashboard, pesquisas e agendamentos (interface) | Implementada |
+| 1.4 | Botão de abordagem com mensagem pronta | Implementada |
+| 1.5 | Redesign "Radar noturno" | Implementada |
 
 ## Dependências
 

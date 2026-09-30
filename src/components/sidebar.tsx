@@ -66,7 +66,7 @@ export function Sidebar() {
 
       {/* Barra superior (celular) */}
       <header className="flex h-12 items-center justify-between border-b border-line bg-canvas px-4 md:hidden">
-        <Link href="/" className="inline-flex items-center gap-2.5 rounded-control">
+        <Link href="/" className="inline-flex min-h-11 items-center gap-2.5 rounded-control">
           <RadarIcon className="size-6" />
           <span className="font-display text-h2 font-semibold">Prospecção de Leads</span>
         </Link>

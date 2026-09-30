@@ -106,3 +106,62 @@ Critério 11 da story **não passa** enquanto A1 e A2 existirem. A1 também repr
 - O servidor `:3000` passou a responder 500 nos chunks estáticos depois de um novo `.next` (BUILD_ID às 15:49, não gerado por mim). Precisa reiniciar. As medições de contraste e teclado foram feitas antes; os estados vazio/erro, mapa e carga sob demanda, em `:3211`.
 - Efeitos colaterais: a tecla E marcou "Taishi" como contatada e desmarquei na hora (funil voltou a 36 prontas e 0 contatadas); C sobrescreveu a área de transferência; o Enter em "Excluir empresa" foi bloqueado pelo ambiente e não repeti.
 - O navegador era compartilhado com outro agente: páginas trocaram de seleção e uma das minhas chamadas caiu na página dele (alternei o tema; ao conferir estava escuro).
+
+## 7. Correções de 30/09/2026
+
+Método: medição na tela com Chromium próprio (Playwright) contra o build de produção em `:3211`, nos dois temas a 1400×900 e a 375×812, com os mesmos cálculos da seção 4 (composição de camadas e opacidade). `lint`, `typecheck`, `test` (142 passaram, 18 ignorados) e `build` passam. Nenhum envio real foi feito (o `click()` dos links de envio foi interceptado nos testes de tecla E); a empresa usada para medir a linha contatada foi marcada e desmarcada na hora (funil voltou a 36 prontas e 0 contatadas).
+
+### Gravidade alta e média
+
+| # | Estado | O que mudou | Medição depois |
+|---|---|---|---|
+| A1 | Corrigido | Opacidade saiu do botão da etapa; só a barra apaga (55 %). Número de etapa vazia passou a `tinta-3` (antes herdava `opacity-45`). | Rótulo e taxa (12 px): 5,97 escuro / 6,15 claro; número 15,32 / 17,61 (vazio: 5,97 / 6,15). Era 2,69 / 2,37. |
+| A2 | Corrigido | Seletor `.radar .leaflet-container .leaflet-control-attribution` (especificidade 0,3,0) vence o `leaflet.css`; fundo escuro de 80 para 88 % (margem no pior pixel do mapa). | Escuro: 6,23 sobre o mapa médio e 5,18 sobre o pixel mais claro (era 1,92). Claro: 5,90 e 6,15. |
+| M1 | Corrigido | Tamanho real de 44 em ≤ 767 px (`max-md:h-11`/`size-11`; botão novo `touch` para o envio compacto, que perdia para o `h-8`): envio da linha e do painel, Exportar, Nova pesquisa, tema, marca do topo, Filtros, busca, selects e campos, Ordenar e direção, Anterior/Próxima/Fechar, Copiar, Desmarcar, Excluir, zoom, Recentrar, Legenda, Abrir/Recolher, linhas do Panorama, vazamento "sem contato", ícones de contato, "Informar WhatsApp", "Dados". | 375 px, 5 estados (lista, mapa aberto, Panorama aberto, folha de filtros, painel): 0 controles abaixo de 44×44, exceto o link "OpenStreetMap" do crédito (81×14, obrigatório) e o link de pulo, que só aparece no foco. |
+| M2 | Corrigido | `rowSendLabel`: "Enviar proposta para {nome} no WhatsApp (abre em nova aba)", "Tentar WhatsApp para {nome}, celular|telefone fixo (…)", "Enviar e-mail para {nome}", "Reenviar proposta para {nome} …"; também "Adicionar WhatsApp de {nome}". Começa pelo texto visível (2.5.3). | 36 links, 36 nomes únicos. |
+| M3 | Corrigido | Campos do painel marcam `data-dirty` (mensagem editada, observação não salva, número não salvo). Esc em campo sem pendência fecha o painel; com pendência, o 1º Esc leva o foco ao título e o 2º fecha. Na gaveta o mesmo (o `preventDefault` do keydown impede o `<dialog>` de fechar sozinho). | Desktop 1400 e gaveta 1024: 1º Esc mantém aberto com foco em `h2#painel-empresa-titulo`, 2º fecha e o foco volta à linha; sem edição, fecha de uma vez. |
+| M4 | Corrigido | Abrir/Recolher mapa passa o foco ao botão do outro estado; Excluir leva o foco à confirmação (grupo nomeado) e Cancelar devolve o foco a "Excluir empresa"; Desmarcar leva o foco ao botão de envio do painel. Anúncios: "Mapa recolhido." / "Mapa aberto.", "Empresa excluída: {nome}.", "Contato desmarcado: {nome}.". | Foco e texto do `aria-live` conferidos nos quatro casos (a exclusão só até a confirmação; não confirmei). |
+| M5 | Corrigido | Chave "Atalhos de teclado" no quadro do `?` (ligada por padrão, em `localStorage["radar:atalhos"]`); desligada, J K E N C M / ? não respondem (Esc segue valendo). E exige empresa selecionada e foco em `#lista-empresas` ou `[data-lead-panel]`. | E com foco no corpo, em campo ou sem seleção: não envia; com foco na linha: dispara (interceptado). Desligado: M e J não fazem nada; lembrado ao recarregar. |
+| M6 | Corrigido | Panorama recebe `error` e `onRetry`: `ErrorState` com "Tentar de novo"; o esqueleto ganhou `role="status"` e texto "Carregando o panorama…". | `/api/stats` com 500 simulado: mostra o erro; ao voltar, "Tentar de novo" recupera. |
+| M7 | Corrigido | `aria-label` "Recolher mapa", "Recolher/Abrir panorama", "Atalhos de teclado"; `Kbd` ganhou `decorative` (`aria-hidden`) nos botões; a tecla segue em `aria-keyshortcuts`. | Nomes lidos por `getByRole(..., { exact: true })`. |
+| M8 | Corrigido | `Thermometer dim`: só os segmentos a 80 %; rótulo e score em `tinta-2`, sem opacidade. | Rótulo "Quente": 8,61 (linha) e 6,71 (selecionada) no escuro; 9,08 e 7,73 no claro (era 4,20). Segmentos: 7,67 / 6,26 escuro, 3,71 / 3,31 claro. |
+
+### Gravidade baixa
+
+| # | Estado | Nota |
+|---|---|---|
+| B1 | Corrigido | `outline-2 outline-transparent` no lugar de `outline-none` (campos e menu Exportar): em alto contraste o contorno aparece. |
+| B2 | Corrigido | `touch-action: manipulation` e `-webkit-tap-highlight-color: transparent` na base. |
+| B3 | Corrigido | `overscroll-contain` no corpo do modal, no painel, na folha de filtros, na lista (desk) e no Panorama. |
+| B4 | Corrigido | `id`/`name` em "Por página"; `name` em "Ordenar" e nos selects de filtro. Nenhum select/input sem `id` ou `name`. |
+| B5 | Corrigido | `?` foca o quadro (`tabIndex=-1`); `?` de novo fecha e devolve o foco ao botão. |
+| B6 | Corrigido | `aria-haspopup="dialog"` só no celular (folha); no desktop `aria-controls="mais-filtros"`; Tab para fora fecha o popover. |
+| B7 | Corrigido | `ThemeToggle` ajusta `meta[name=theme-color]` (#0d1116 / #f2f4f7) ao hidratar e ao alternar. O primeiro quadro, antes da hidratação, ainda usa a cor escura. |
+| B8 | Corrigido | `title: { absolute: "Dashboard · Prospecção de Leads" }`. |
+| B9 | Corrigido | Anúncio espera 400 ms; filtro e etapa acrescentam "Mapa: {n} empresas."; fechar o painel limpa o texto. |
+| B10 | Corrigido | Título do painel sem `outline-none`: anel visível (2 px) depois do Esc. |
+| B11 | Corrigido | `role="group"` no contêiner do mapa. |
+| B12 | Corrigido | Legenda aberta sobe (`max-sm:bottom-8`) e deixa o crédito livre em 375 px. |
+| B13 | Corrigido | Rótulo do mapa: "Mapa das empresas, não consegui carregar os pontos". |
+| B14 | Corrigido | A última linha fechada com Esc continua sendo o único ponto de Tab. |
+| B15 | Não feito | As duas especificações divergem (9 linhas na UX, funil de 186 px no visual); escolher qual vale é decisão de design, não de acessibilidade. |
+| B16 | Não feito | `content-visibility: auto` impõe `contain: paint` na linha e pode cortar o anel de foco; só importa com 200 por página. Medir antes. |
+| B17 | Não feito | Opcional: `?empresa=id` muda o contrato da URL e o `view-state.ts`. |
+
+### Critérios de aceite depois das correções
+
+| # | Resultado |
+|---|---|
+| 6 | Passa (funil claro ≥ 6,15; demais pares da seção 4 inalterados). |
+| 8 | Passa, com o erro do Panorama visto; "Mapa sem internet" continua sem emulação. |
+| 9 | Passa (M1, M3, M4, M5 corrigidos). |
+| 10 | Passa: `lint`, `typecheck`, `test`, `build`. |
+| 11 | Passa: sem pendência de gravidade alta. |
+| 7 | Sem mudança: Pesquisas, Agendamentos, Configurações e "Mais filtros" avançados seguem sem teste completo. |
+
+### Restos e observações
+
+- **Atalhos em tela pequena:** o botão "Atalhos" (e com ele a chave) só existe a partir de 768 px; em celular com teclado físico os atalhos de tecla única seguem ligados e sem chave.
+- **Chip de filtro:** o × mede 20 com área de 32 (passa 2.5.8, não o alvo de 44).
+- **Ruído só do `next dev`:** `Cannot read properties of undefined (reading 'save')` (canvas do Leaflet com o StrictMode remontando o mapa). Não ocorre no build de produção (0 erros ao abrir, recolher e reabrir o mapa); não mexi.
+- **Servidor `:3000`:** o `npm run build` renovou a pasta `.next`; o servidor do usuário precisa ser reiniciado.

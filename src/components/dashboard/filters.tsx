@@ -56,7 +56,7 @@ export function DebouncedInput({
       {...props}
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
-      className={cx(inputClass, className)}
+      className={cx(inputClass, "max-md:h-11", className)}
     />
   );
 }
@@ -77,7 +77,7 @@ export function SearchBox({
       <label htmlFor={id} className="sr-only">
         Buscar empresa
       </label>
-      <SearchIcon className="pointer-events-none absolute top-2.5 left-3 size-4 text-subtle" />
+      <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle" />
       <DebouncedInput
         id={id}
         type="search"
@@ -89,8 +89,8 @@ export function SearchBox({
         autoComplete="off"
         className="pr-9 pl-9"
       />
-      <span className="pointer-events-none absolute top-2 right-2 hidden sm:block">
-        <Kbd>/</Kbd>
+      <span className="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 sm:block">
+        <Kbd decorative>/</Kbd>
       </span>
     </div>
   );
@@ -207,9 +207,10 @@ function NativeSelect({
       </label>
       <select
         id={id}
+        name={id}
         value={value ?? ""}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className={cx(inputClass, "truncate", value && "font-medium")}
+        className={cx(inputClass, "truncate max-md:h-11", value && "font-medium")}
       >
         <option value="">{allLabel}</option>
         {list.map((o) => (
@@ -252,7 +253,7 @@ function MinStarsPicker({ value, onChange }: { value: number | undefined; onChan
               aria-label={minStarsLabel(n)}
               title={minStarsLabel(n)}
               onClick={() => onChange(n <= 1 || value === n ? undefined : n)}
-              className="alvo group flex h-9 w-7 items-center justify-center rounded-control transicao hover:bg-hover"
+              className="alvo group flex h-9 w-7 items-center justify-center rounded-control transicao hover:bg-hover max-md:h-11 max-md:w-11"
             >
               <span
                 className={cx(
@@ -414,6 +415,8 @@ function focusFirstField(node: HTMLElement | null) {
   node?.querySelector<HTMLElement>("select, input, button")?.focus();
 }
 
+const POPOVER_ID = "mais-filtros";
+
 function Popover({ onClose, children }: { onClose: (restoreFocus: boolean) => void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -431,6 +434,7 @@ function Popover({ onClose, children }: { onClose: (restoreFocus: boolean) => vo
   return (
     <div
       ref={ref}
+      id={POPOVER_ID}
       role="group"
       aria-label="Mais filtros"
       onKeyDown={(event) => {
@@ -438,6 +442,11 @@ function Popover({ onClose, children }: { onClose: (restoreFocus: boolean) => vo
           event.stopPropagation();
           onClose(true);
         }
+      }}
+      onBlur={(event) => {
+        // Tab para fora do gatilho e do painel: fecha, sem puxar o foco de volta.
+        const holder = ref.current?.parentElement;
+        if (event.relatedTarget instanceof Node && holder && !holder.contains(event.relatedTarget)) onClose(false);
       }}
       className="anima-menu absolute top-full right-0 z-30 mt-2 w-[480px] origin-top-right rounded-card bg-surface-3 p-4 shadow-elev-3"
     >
@@ -533,8 +542,10 @@ export function FiltersBar({
         <div className="relative">
           <Button
             ref={trigger}
+            className="max-md:h-11"
             aria-expanded={open}
-            aria-haspopup="dialog"
+            aria-haspopup={wide ? undefined : "dialog"}
+            aria-controls={open && wide ? POPOVER_ID : undefined}
             onClick={() => setOpen((v) => !v)}
             icon={<FilterIcon />}
           >
@@ -557,7 +568,7 @@ export function FiltersBar({
           <div className="flex items-center justify-between border-b border-line px-5 py-3">
             <h2 className="font-display text-h2 font-semibold">Filtros</h2>
           </div>
-          <div className="relative min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
             <AdvancedFields filters={filters} meta={meta} searches={searches} onChange={onChange} includeMain />
           </div>
           <div className="flex gap-2 border-t border-line px-5 py-3">

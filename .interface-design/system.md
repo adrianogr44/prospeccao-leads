@@ -51,17 +51,18 @@ Uma estratégia por tema. Escuro: degraus de superfície (7 / 10 / 13 / 17 % de 
 |---|---|
 | Botão sm / md | h 32 / 36 · padding 0 12 / 0 14 · gap 6 / 8 · 13/16 e 14/16 · 600 · raio 6 · ícone 16. Variantes: `send`, `primary` (neutro), `secondary`, `ghost`, `danger`, `danger-solid`. `loading` troca o ícone por spinner 14 |
 | Botão-ícone | 28 (hit 32 via `alvo`), 32, 36, 44 (celular) |
+| Alvo de toque (≤ 767) | Controle principal tem 44 × 44 de área: `max-md:h-11` / `max-md:size-11` no próprio controle (tamanho `touch` do botão para ícone), nunca só pseudo-elemento dentro de contêiner com `overflow`. Vale para envio da linha e do painel, Exportar, Nova pesquisa, tema, Filtros, busca, Anterior/Próxima/Fechar, zoom, Legenda, Abrir/Recolher, linhas do Panorama. Campos e selects do Dashboard também (`max-md:h-11`). Fora: chip de filtro (×, 32 de hit) e o link "OpenStreetMap" do crédito |
 | Input / select / textarea | h 36 · padding 0 12 (select com seta 16 a 10 px da direita, padding-right 32) · raio 6 · foco: borda `fio-foco` + anel 3 px `ctl-anel`; textarea min 160, padding 10 12, linha 20 |
 | Etiqueta | h 20 · padding 0 6 · raio 4 · 12/16 500 · marca de 8 px por situação (círculo cheio, meio círculo, vazado, losango) |
 | Chip de filtro | h 28 · pílula · padding 0 4 0 10 · "Chave:" `tinta-3` + valor 500 `tinta-1` · × 20 × 20 |
-| Termômetro compacto | segmentos 6 × 4, raio 1, gap 2 (trilho 38) · gap 8 · rótulo 12/16 500 · gap 6 · score Display 13/16 600. `role="img"` "Quente, 95 de 100" |
+| Termômetro compacto | segmentos 6 × 4, raio 1, gap 2 (trilho 38) · gap 8 · rótulo 12/16 500 · gap 6 · score Display 13/16 600. `role="img"` "Quente, 95 de 100". Linha contatada (`dim`): só os segmentos a 80 %; rótulo e score passam a `tinta-2` (nunca opacidade no texto: `tinta-2` fica ≥ 6,7:1) |
 | Termômetro grande | segmentos 26 × 8, raio 2, gap 3 (142) · score Display 34/36 + "/100" 12 · rótulo Display 18/24 |
 | Níveis | 5 Quente, 4 Aquecida, 3 Morna, 2 Fria, 1 Gelada (cor `--termo-N`; brilho só no 5, só no escuro) |
 | Monograma | 40 × 40 raio 10 na lista e no painel (32 × 32 raio 8 disponível) · Display 13/16 600 · Quente: `letreiro-suave` + âmbar; contatada: anel interno 2 px `--envio-anel` |
 | Linha da lista | 64 (72 no celular) · monograma 40 · gap 12 · colunas 40 / 1fr / termômetro 128 / ação 152 presa à direita · hover `realce`, selecionada `realce-forte` + filete 2 px `tinta-2` |
-| Funil | painel padding 16 20 · grade `1fr 20 1fr 20 1fr 20 1.7fr 20 1fr` · etapa = 4 linhas 16 / 64 / 72 / 16, gap 6 · barra `16 + 56 × valor/encontradas` · conector SVG 20 px · herói 64/64 âmbar com brilho · celular: herói + chips de 120 que rolam |
+| Funil | painel padding 16 20 · grade `1fr 20 1fr 20 1fr 20 1.7fr 20 1fr` · etapa = 4 linhas 16 / 64 / 72 / 16, gap 6 · barra `16 + 56 × valor/encontradas` (etapa não selecionada: só a barra a 55 %; rótulo, número e taxa ficam em `tinta-3`/`tinta-1`, e o número de etapa vazia em `tinta-3`, sem opacidade no botão) · conector SVG 20 px · herói 64/64 âmbar com brilho · celular: herói + chips de 120 que rolam |
 | Distribuição | linha h 28 · rótulo 35 % · trilho h 6 pílula · contagem Display 13/16 em 40 px · ativa âmbar, demais a 50 % |
-| Mapa-radar | card raio 14 · 320 (≥ 1280) / 240 · rodapé 36 com "{n} pontos" e Recolher (M) · zoom 2 × 32 × 32 raio 10 (`muro`) · legenda `muro` raio 10 padding 8 10 · atribuição 11/14 no canto |
+| Mapa-radar | card raio 14 · 320 (≥ 1280) / 240 · rodapé 36 com "{n} pontos" e Recolher (M) · zoom 2 × 32 × 32 raio 10 (`muro`) · legenda `muro` raio 10 padding 8 10 (aberta no celular sobe `bottom-8` para não cobrir o crédito) · atribuição 11/14 no canto, `tinta-3` sobre `--mapa-atrib-bg` (escuro 88 %, claro 85 %); o seletor leva `.leaflet-container` para vencer o `leaflet.css` · Abrir/Recolher passa o foco ao botão do outro estado |
 | Painel da empresa | navegação 44 · cabeçalho monograma 40 + h2 · corpo padding 20, blocos separados por 20 e `fio-suave` · barra de envio fixa padding 12 20 |
 | Gaveta / folha | `min(480px, 100vw)` à direita (tela cheia < 768) · folha inferior 80 dvh raio 14 no topo |
 | Diálogo | `min(440px, 100vw − 32px)` · `vitrine` · raio 14 · padding 20 |
@@ -75,6 +76,13 @@ Uma estratégia por tema. Escuro: degraus de superfície (7 / 10 / 13 / 17 % de 
 | Chave (`Switch`) | h 36 · trilho 36 × 20 pílula, bola 16 · ligada `primario` com bola `sobre-primario`, desligada `ctl-bg` + anel `ctl-borda` · texto do estado 13/16 500 ao lado · nunca verde nem âmbar |
 | Caixa de seleção (`Checkbox`) | 16 × 16 raio 4 · marcada `primario` + CheckIcon 12 · rótulo inteiro clicável, h mín. 32 |
 | Casca | trilho 88 (marca 56, itens 72 × 56 com ícone 20 + rótulo Display 12) · celular: barra superior 48 + abas inferiores 56 |
+
+## Teclado e leitor de tela (Dashboard)
+
+- **Atalhos de tecla única** (J K E N C M / ?): só disparam fora de campo editável, e podem ser desligados no quadro "Atalhos de teclado" (chave, ligada por padrão, lembrada em `localStorage["radar:atalhos"]`; "0" = desligado). Desligados, `?` também não responde: o botão "Atalhos" segue acessível. E (enviar) exige empresa selecionada e foco na lista (`#lista-empresas`) ou no painel (`[data-lead-panel]`).
+- **Esc** não é atalho de tecla única e vale sempre. Em campo do painel: sem texto pendente (`data-dirty`), fecha o painel; com texto pendente, o 1º Esc leva o foco ao título e o 2º fecha (mesma regra na gaveta). Campo de busca e de filtros mantêm o Esc do próprio campo.
+- **Foco depois de trocar o botão:** Recolher/Abrir mapa → botão equivalente; Excluir empresa → confirmação (grupo nomeado) e, ao cancelar, de volta ao botão; Desmarcar → botão de envio do painel. Cada ação fala no `aria-live` ("Mapa recolhido.", "Empresa excluída: {nome}.", "Contato desmarcado: {nome}."), que espera 400 ms de silêncio.
+- **Nomes acessíveis:** link de envio da linha leva a empresa ("Enviar proposta para {nome} no WhatsApp (abre em nova aba)"); `Kbd` dentro de botão é `decorative` (`aria-hidden`) e a tecla vai em `aria-keyshortcuts`; "Recolher mapa", "Abrir panorama", "Atalhos de teclado".
 
 ## Layout do Dashboard
 

@@ -47,13 +47,16 @@ function Block({ id, title, children }: { id: string; title: string; children: R
   );
 }
 
-function ExtLink({ href, children }: { href: string; children: ReactNode }) {
+function ExtLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-fg underline decoration-line-strong underline-offset-2 transicao hover:decoration-fg"
+      className={cx(
+        "inline-flex items-center gap-1 text-fg underline decoration-line-strong underline-offset-2 transicao hover:decoration-fg",
+        className,
+      )}
     >
       {children}
       <ExternalIcon className="size-3 text-subtle" />
@@ -80,9 +83,11 @@ function Reasons({ lead }: { lead: LeadDTO }) {
         <SiteBadge status={lead.siteStatus} />
         {lead.sitePlatform && <span className="text-legenda text-subtle">{lead.sitePlatform}</span>}
         {lead.website ? (
-          <ExtLink href={externalUrl(lead.website)}>Abrir site</ExtLink>
+          <ExtLink href={externalUrl(lead.website)} className="max-md:min-h-11">
+            Abrir site
+          </ExtLink>
         ) : (
-          <GoogleSearchLink lead={lead} />
+          <GoogleSearchLink lead={lead} className="max-md:min-h-11" />
         )}
       </div>
       {lead.siteSignals.length > 0 && (
@@ -151,7 +156,7 @@ function Destination({
       {editing ? (
         <WhatsappField key={lead.whatsapp ?? ""} lead={lead} onUpdated={onUpdated} onCancel={() => setEditing(false)} />
       ) : (
-        <Button variant="ghost" size="sm" className="-ml-3" onClick={() => setEditing(true)}>
+        <Button variant="ghost" size="sm" className="-ml-3 max-md:h-11" onClick={() => setEditing(true)}>
           {lead.whatsapp ? "Trocar número" : "Informar WhatsApp"}
         </Button>
       )}
@@ -189,6 +194,7 @@ function Notes({ lead, onSaved }: { lead: LeadDTO; onSaved: (lead: LeadDTO) => v
       </label>
       <textarea
         id="lead-notes"
+        data-dirty={value !== saved ? "true" : undefined}
         value={value}
         maxLength={2000}
         rows={3}
@@ -321,6 +327,12 @@ function DeleteLead({ lead, onDeleted }: { lead: LeadDTO; onDeleted: () => void 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /** O botão "Excluir empresa" volta a existir: o foco vai para ele em vez de cair no body. */
+  function cancel() {
+    setConfirming(false);
+    requestAnimationFrame(() => document.getElementById("excluir-empresa")?.focus());
+  }
+
   async function remove() {
     setBusy(true);
     setError(null);
@@ -335,20 +347,28 @@ function DeleteLead({ lead, onDeleted }: { lead: LeadDTO; onDeleted: () => void 
 
   if (!confirming) {
     return (
-      <Button variant="danger" size="sm" onClick={() => setConfirming(true)}>
+      <Button id="excluir-empresa" variant="danger" size="sm" className="max-md:h-11" onClick={() => setConfirming(true)}>
         Excluir empresa
       </Button>
     );
   }
   return (
-    <div className="rounded-card bg-pin-soft p-3 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--pino)_35%,transparent)]">
-      <p className="font-semibold text-fg">Excluir {lead.name}?</p>
+    <div
+      ref={focusOnMount}
+      role="group"
+      aria-labelledby="excluir-pergunta"
+      tabIndex={-1}
+      className="rounded-card bg-pin-soft p-3 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--pino)_35%,transparent)]"
+    >
+      <p id="excluir-pergunta" className="font-semibold text-fg">
+        Excluir {lead.name}?
+      </p>
       <p className="mt-0.5 text-muted">A empresa sai da lista e não volta em novas pesquisas.</p>
       <div className="mt-3 flex gap-2">
-        <Button variant="danger-solid" size="sm" onClick={remove} loading={busy}>
+        <Button variant="danger-solid" size="sm" className="max-md:h-11" onClick={remove} loading={busy}>
           Sim, excluir
         </Button>
-        <Button size="sm" onClick={() => setConfirming(false)} disabled={busy}>
+        <Button size="sm" className="max-md:h-11" onClick={cancel} disabled={busy}>
           Cancelar
         </Button>
       </div>
@@ -434,7 +454,7 @@ function PanelContent({
 
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
-      <div className="relative min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
+      <div className="relative min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5">
         <Block id="bloco-motivos" title="Por que abordar">
           <Reasons lead={lead} />
         </Block>
@@ -473,6 +493,7 @@ function PanelContent({
               <textarea
                 id="outreach-message"
                 data-autofocus={focus === "message" ? "" : undefined}
+                data-dirty={edited !== null && edited !== generated ? "true" : undefined}
                 value={message}
                 rows={10}
                 onChange={(event) => {
@@ -501,7 +522,7 @@ function PanelContent({
               aria-expanded={dataOpen}
               aria-controls="dados-conteudo"
               onClick={() => setDataOpen((v) => !v)}
-              className="rotulo -mx-1 inline-flex items-center gap-1 rounded-control px-1 transicao hover:text-fg"
+              className="rotulo -mx-1 inline-flex items-center gap-1 rounded-control px-1 transicao hover:text-fg max-md:min-h-11"
             >
               Dados
               <ChevronDownIcon className={cx("size-3.5 transition-transform", dataOpen && "rotate-180")} />
@@ -530,11 +551,11 @@ function PanelContent({
         )}
         {sentAt ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Button ref={focusOnMount} variant="primary" onClick={onNextQueued}>
+            <Button ref={focusOnMount} variant="primary" className="max-md:h-11" onClick={onNextQueued}>
               Próxima empresa
               <ChevronRightIcon />
             </Button>
-            <Button variant="ghost" onClick={() => onUnmark(lead)}>
+            <Button variant="ghost" className="max-md:h-11" onClick={() => onUnmark(lead)}>
               Desmarcar
             </Button>
             <span className="ml-auto inline-flex items-center gap-1 text-legenda text-muted">
@@ -553,7 +574,7 @@ function PanelContent({
                 data-send="panel"
                 data-lead-id={lead.id}
                 aria-keyshortcuts="E"
-                className={buttonStyles(sendVariant(lead, target), "md")}
+                className={buttonStyles(sendVariant(lead, target), "md", "max-md:h-11")}
                 onClick={() => onSend(lead)}
               >
                 <SendIcon target={target} />
@@ -563,6 +584,7 @@ function PanelContent({
             ) : null}
             <Button
               variant={url ? "secondary" : "primary"}
+              className="max-md:h-11"
               data-action="copy"
               aria-keyshortcuts="C"
               onClick={copyMessage}
@@ -571,7 +593,7 @@ function PanelContent({
               {url ? <span className="max-sm:sr-only">Copiar</span> : "Copiar mensagem"}
             </Button>
             {lead.contactedAt && (
-              <Button variant="ghost" onClick={() => onUnmark(lead)}>
+              <Button variant="ghost" className="max-md:h-11" onClick={() => onUnmark(lead)}>
                 Desmarcar
               </Button>
             )}
@@ -621,10 +643,17 @@ export function LeadPanel({
   const place = [lead.category, [lead.neighborhood, lead.city].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div data-lead-panel="" className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 border-b border-line">
         <div className="flex h-11 items-center justify-between gap-2 px-2">
-          <Button variant="ghost" size="sm" onClick={onPrev} disabled={!canPrev} aria-keyshortcuts="K">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="max-md:h-11"
+            onClick={onPrev}
+            disabled={!canPrev}
+            aria-keyshortcuts="K"
+          >
             <ChevronLeftIcon />
             Anterior
           </Button>
@@ -632,11 +661,18 @@ export function LeadPanel({
             {position ? `${formatNumber(position.index)} de ${formatNumber(position.total)}` : "Fora desta página"}
           </span>
           <div className="flex items-center">
-            <Button variant="ghost" size="sm" onClick={onNext} disabled={!canNext} aria-keyshortcuts="J">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="max-md:h-11"
+              onClick={onNext}
+              disabled={!canNext}
+              aria-keyshortcuts="J"
+            >
               Próxima
               <ChevronRightIcon />
             </Button>
-            <IconButton label="Fechar painel" onClick={onClose} aria-keyshortcuts="Escape">
+            <IconButton label="Fechar painel" className="max-md:size-11" onClick={onClose} aria-keyshortcuts="Escape">
               <CloseIcon />
             </IconButton>
           </div>
@@ -648,7 +684,7 @@ export function LeadPanel({
               id={headingId}
               tabIndex={-1}
               data-autofocus={content.focus === "message" || content.focus === "whatsapp" ? undefined : ""}
-              className="truncate font-display text-h2 font-semibold outline-none"
+              className="truncate rounded-badge font-display text-h2 font-semibold"
             >
               {lead.name}
             </h2>

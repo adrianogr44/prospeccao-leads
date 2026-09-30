@@ -10,7 +10,7 @@ import { PAGE_SIZES } from "@/lib/view-state";
 import { ArrowDownIcon, ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, KeyboardIcon } from "../icons";
 import { Monogram, SiteMark, Thermometer } from "../lead-ui";
 import { ProposalButton } from "../outreach";
-import { Button, IconButton, inputClass, Kbd, Skeleton } from "../ui";
+import { Button, IconButton, inputClass, Kbd, Skeleton, Switch } from "../ui";
 
 export const SORT_LABEL: Record<LeadSort, string> = {
   score: "Oportunidade",
@@ -116,7 +116,7 @@ function Row({
           </span>
           {/* Celular: termômetro na segunda linha */}
           <span className="mt-1 flex min-w-0 items-center gap-1.5 text-legenda text-subtle sm:hidden">
-            <Thermometer stars={lead.stars} score={lead.score} className={cx(contacted && "opacity-60")} />
+            <Thermometer stars={lead.stars} score={lead.score} dim={contacted} />
             <span aria-hidden="true">·</span>
             <span className="truncate">{SITE_STATUS_LABEL[lead.siteStatus]}</span>
           </span>
@@ -133,7 +133,7 @@ function Row({
           </span>
         </span>
         <span className="hidden sm:block">
-          <Thermometer stars={lead.stars} score={lead.score} className={cx(contacted && "opacity-60")} />
+          <Thermometer stars={lead.stars} score={lead.score} dim={contacted} />
         </span>
       </button>
       <div className="flex shrink-0 justify-end sm:w-[152px]">
@@ -172,6 +172,7 @@ export function ListSkeleton() {
 export function LeadRows({
   items,
   selectedId,
+  tabFallbackId,
   showCity,
   settings,
   busy,
@@ -183,6 +184,8 @@ export function LeadRows({
 }: {
   items: LeadDTO[];
   selectedId: string | null;
+  /** Linha que fica como ponto de Tab quando não há selecionada (a última fechada com Esc). */
+  tabFallbackId: string | null;
   showCity: boolean;
   settings: OutreachSettings | undefined;
   busy: boolean;
@@ -192,8 +195,12 @@ export function LeadRows({
   onSend: (lead: LeadDTO) => void;
   onAddWhatsapp: (lead: LeadDTO) => void;
 }) {
-  // Um só ponto de Tab na lista: a linha selecionada, ou a primeira.
-  const tabId = items.some((l) => l.id === selectedId) ? selectedId : (items[0]?.id ?? null);
+  // Um só ponto de Tab na lista: a linha selecionada, a última que foi fechada com Esc, ou a primeira.
+  const tabId = items.some((l) => l.id === selectedId)
+    ? selectedId
+    : items.some((l) => l.id === tabFallbackId)
+      ? tabFallbackId
+      : (items[0]?.id ?? null);
   const compact = !useMediaQuery("(min-width: 640px)", true);
   return (
     <ul aria-label="Empresas" aria-busy={busy || undefined} className={cx("transicao", busy && "opacity-60")}>
@@ -231,7 +238,18 @@ const SHORTCUTS: Array<[string, string]> = [
   ["Esc", "Fechar o que estiver aberto"],
 ];
 
-export function ShortcutsButton({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function ShortcutsButton({
+  open,
+  onOpenChange,
+  enabled,
+  onEnabledChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Atalhos de tecla única ligados (WCAG 2.1.4: precisam poder ser desligados). */
+  enabled: boolean;
+  onEnabledChange: (enabled: boolean) => void;
+}) {
   const wrapper = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -262,19 +280,32 @@ export function ShortcutsButton({ open, onOpenChange }: { open: boolean; onOpenC
         size="sm"
         aria-expanded={open}
         aria-controls="atalhos"
+        aria-label="Atalhos de teclado"
         aria-keyshortcuts="?"
         onClick={() => onOpenChange(!open)}
         icon={<KeyboardIcon />}
       >
-        Atalhos <Kbd>?</Kbd>
+        Atalhos <Kbd decorative>?</Kbd>
       </Button>
       {open && (
         <div
           id="atalhos"
           role="group"
           aria-label="Atalhos de teclado"
+          tabIndex={-1}
           className="anima-menu absolute top-full right-0 z-30 mt-2 w-72 origin-top-right rounded-card bg-surface-3 p-3 shadow-elev-3"
         >
+          <div className="mb-3 border-b border-line-soft pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-fg">Atalhos de teclado</span>
+              <Switch checked={enabled} onCheckedChange={onEnabledChange} label="Atalhos de teclado">
+                {enabled ? "Ligados" : "Desligados"}
+              </Switch>
+            </div>
+            {!enabled && (
+              <p className="mt-1 text-legenda text-subtle">Com os atalhos desligados, use os botões da tela.</p>
+            )}
+          </div>
           <dl className="space-y-1.5">
             {SHORTCUTS.map(([keys, text]) => (
               <div key={keys} className="flex items-center justify-between gap-3">
@@ -302,6 +333,8 @@ export function ListBar({
   onDir,
   shortcutsOpen,
   onShortcutsOpen,
+  shortcutsEnabled,
+  onShortcutsEnabled,
 }: {
   total: number | undefined;
   stageLabel: string | null;
@@ -311,9 +344,11 @@ export function ListBar({
   onDir: () => void;
   shortcutsOpen: boolean;
   onShortcutsOpen: (open: boolean) => void;
+  shortcutsEnabled: boolean;
+  onShortcutsEnabled: (enabled: boolean) => void;
 }) {
   return (
-    <div className="flex h-11 items-center justify-between gap-2 border-b border-line px-3">
+    <div className="flex h-11 items-center justify-between gap-2 border-b border-line px-3 max-md:h-14">
       <p className="min-w-0 truncate">
         <span className="font-display text-numero font-semibold tabular-nums">
           {total === undefined ? "—" : formatNumber(total)}
@@ -327,12 +362,13 @@ export function ListBar({
         </label>
         <select
           id="ordenar"
+          name="ordenar"
           value={sort}
           onChange={(event) => {
             const field = LEAD_SORT_FIELDS.find((f) => f === event.target.value);
             if (field) onSort(field);
           }}
-          className={cx(inputClass, "h-8 w-auto text-botao")}
+          className={cx(inputClass, "h-8 w-auto text-botao max-md:h-11")}
           aria-label="Ordenar por"
         >
           {LEAD_SORT_FIELDS.map((field) => (
@@ -344,11 +380,17 @@ export function ListBar({
         <IconButton
           label={dir === "desc" ? "Ordem decrescente" : "Ordem crescente"}
           variant="secondary"
+          className="max-md:size-11"
           onClick={onDir}
         >
           {dir === "desc" ? <ArrowDownIcon /> : <ArrowUpIcon />}
         </IconButton>
-        <ShortcutsButton open={shortcutsOpen} onOpenChange={onShortcutsOpen} />
+        <ShortcutsButton
+          open={shortcutsOpen}
+          onOpenChange={onShortcutsOpen}
+          enabled={shortcutsEnabled}
+          onEnabledChange={onShortcutsEnabled}
+        />
       </div>
     </div>
   );
@@ -384,9 +426,11 @@ export function Pagination({
         <label className="hidden items-center gap-1.5 whitespace-nowrap sm:flex">
           Por página
           <select
+            id="por-pagina"
+            name="por-pagina"
             value={pageSize}
             onChange={(event) => onPageSize(Number(event.target.value))}
-            className={cx(inputClass, "h-8 w-auto text-botao")}
+            className={cx(inputClass, "h-8 w-auto text-botao max-md:h-11")}
           >
             {PAGE_SIZES.map((size) => (
               <option key={size} value={size}>
@@ -398,7 +442,7 @@ export function Pagination({
         <IconButton
           label="Página anterior"
           variant="secondary"
-          className="max-sm:size-11"
+          className="max-md:size-11"
           onClick={() => onPage(page - 1)}
           disabled={page <= 1}
         >
@@ -410,7 +454,7 @@ export function Pagination({
         <IconButton
           label="Próxima página"
           variant="secondary"
-          className="max-sm:size-11"
+          className="max-md:size-11"
           onClick={() => onPage(page + 1)}
           disabled={page >= pages}
         >

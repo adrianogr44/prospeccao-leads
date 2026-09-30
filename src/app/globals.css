@@ -79,7 +79,7 @@
   --mapa-filtro: grayscale(1) invert(1) sepia(1) hue-rotate(178deg) saturate(1.8) brightness(0.8);
   --mapa-mistura: screen;
   --mapa-ponto-anel: none;
-  --mapa-atrib-bg: rgba(13, 17, 22, 0.8);
+  --mapa-atrib-bg: rgba(13, 17, 22, 0.88);
   --glow-heroi: 0 0 24px var(--letreiro-halo);
   --brilho-segmento: 0 0 6px var(--letreiro-halo);
   --brilho-segmento-grande: 0 0 10px var(--letreiro-halo);
@@ -382,6 +382,19 @@
     outline-offset: 2px;
   }
 
+  /* Toque: sem espera de duplo toque nem clarão cinza; o estado pressionado é do próprio componente. */
+  a,
+  button,
+  select,
+  input,
+  textarea,
+  summary,
+  [role="switch"],
+  [role="menuitem"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   ::selection {
     background-color: var(--ctl-anel);
   }
@@ -459,7 +472,12 @@
   .radar .leaflet-pane.leaflet-pontos-pane {
     mix-blend-mode: var(--mapa-mistura);
   }
-  .radar .leaflet-control-attribution {
+  /*
+   * Crédito do OSM: o leaflet.css (carrega depois, sem camada) tem `.leaflet-container .leaflet-control-attribution`
+   * com a mesma especificidade de `.radar .leaflet-control-attribution` e vencia pela ordem (fundo branco a 80 %,
+   * texto cinza: 1,9:1 no escuro). Por isso o seletor leva `.leaflet-container` também.
+   */
+  .radar .leaflet-container .leaflet-control-attribution {
     margin: 0;
     padding: 2px 8px;
     border-radius: 6px 0 0 0;
@@ -468,11 +486,11 @@
     font-size: 11px;
     line-height: 14px;
   }
-  .radar .leaflet-control-attribution a {
+  .radar .leaflet-container .leaflet-control-attribution a {
     color: var(--tinta-3);
     text-decoration: none;
   }
-  .radar .leaflet-control-attribution a:hover {
+  .radar .leaflet-container .leaflet-control-attribution a:hover {
     color: var(--tinta-1);
     text-decoration: underline;
   }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { errorMessage, exportPath, exportToSheets, type ExportFormat } from "@/lib/api";
 import type { LeadFilters, MetaResponse, SheetsExportResponse } from "@/lib/contract";
+import { cx } from "@/lib/cx";
 import { formatNumber } from "@/lib/format";
 import { CheckIcon, ChevronDownIcon, DownloadIcon, ExternalIcon } from "../icons";
 import { Modal } from "../modal";
@@ -15,7 +16,7 @@ const FILE_FORMATS: Array<{ format: ExportFormat; label: string }> = [
 ];
 
 const itemClass =
-  "flex h-8 w-full items-center gap-2.5 rounded-control px-2.5 text-left text-muted transicao hover:bg-hover hover:text-fg focus-visible:bg-selected focus-visible:text-fg focus-visible:shadow-[inset_0_0_0_2px_var(--fio-foco)] focus-visible:outline-none";
+  "flex h-8 w-full items-center gap-2.5 rounded-control px-2.5 text-left text-muted transicao hover:bg-hover hover:text-fg focus-visible:bg-selected focus-visible:text-fg focus-visible:shadow-[inset_0_0_0_2px_var(--fio-foco)] focus-visible:outline-2 focus-visible:outline-transparent";
 
 function SheetsDialog({
   filters,
@@ -173,7 +174,7 @@ export function ExportMenu({
         aria-controls="menu-exportar"
         aria-label={compact ? "Exportar" : undefined}
         onClick={() => setOpen((v) => !v)}
-        className={compact ? "w-9 px-0" : undefined}
+        className={cx("max-md:h-11", compact && "w-11 px-0")}
         icon={<DownloadIcon />}
       >
         {!compact && (

@@ -95,6 +95,7 @@ export function Funnel({
     const hero = stage.id === "ready";
     const pressed = active === stage.id;
     const empty = value === 0;
+    const idle = empty && !pressed;
     const h = value === undefined ? SKELETON_HEIGHTS[stage.id] : barHeight(value, funnel?.found ?? 0);
     return (
       <button
@@ -108,8 +109,7 @@ export function Funnel({
         }}
         className={cx(
           "group grid min-w-0 grid-rows-[16px_64px_72px_16px] gap-y-1.5 rounded-card text-left transicao focus-visible:outline-offset-4",
-          dim && !pressed && "opacity-55 hover:opacity-100",
-          empty && !pressed && "cursor-default opacity-45",
+          idle && "cursor-default",
         )}
       >
         <span className={cx("rotulo truncate", hero && "text-muted")}>{stage.label}</span>
@@ -117,8 +117,8 @@ export function Funnel({
           className={cx(
             "self-end font-display font-semibold tabular-nums",
             hero
-              ? "text-heroi font-bold tracking-heroi text-hero [text-shadow:var(--glow-heroi)]"
-              : "text-kpi tracking-titulo text-fg",
+              ? cx("text-heroi font-bold tracking-heroi", idle ? "text-subtle" : "text-hero [text-shadow:var(--glow-heroi)]")
+              : cx("text-kpi tracking-titulo", idle ? "text-subtle" : "text-fg"),
           )}
         >
           {value === undefined ? "—" : formatNumber(value)}
@@ -134,6 +134,8 @@ export function Funnel({
                 "w-full origin-center rounded-control transicao",
                 barTone(stage.id),
                 pressed && selectedRing(stage.id),
+                // Só a barra apaga: rótulo, número e taxa ficam com o contraste cheio (texto pequeno não pode virar 2,4:1).
+                dim && !pressed && "opacity-55 group-hover:opacity-100",
               )}
               style={{ height: h }}
             />
@@ -261,7 +263,7 @@ function LeakLink({ count, pressed, onClick }: { count: number; pressed: boolean
       aria-pressed={pressed}
       onClick={onClick}
       className={cx(
-        "alvo inline-flex h-6 items-center gap-1 rounded-control px-1.5 text-legenda underline-offset-2 transicao hover:text-fg hover:underline",
+        "alvo inline-flex h-6 items-center gap-1 rounded-control px-1.5 text-legenda underline-offset-2 transicao hover:text-fg hover:underline max-md:h-11 max-md:px-2",
         pressed ? "bg-selected font-medium text-fg" : "text-muted",
       )}
     >

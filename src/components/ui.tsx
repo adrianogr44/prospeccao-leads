@@ -7,7 +7,8 @@ import { AlertIcon, CheckIcon, CloseIcon, RadarVazio, SpinnerIcon } from "./icon
 // ---------- Botões ----------
 
 export type ButtonVariant = "send" | "primary" | "secondary" | "ghost" | "danger" | "danger-solid";
-export type ButtonSize = "sm" | "md";
+/** `touch`: só ícone, 44 × 44 (alvo de toque do celular). */
+export type ButtonSize = "sm" | "md" | "touch";
 
 const buttonBase =
   "inline-flex shrink-0 items-center justify-center rounded-control border font-semibold whitespace-nowrap select-none transicao pressiona [&_svg]:size-4 [&_svg]:shrink-0 aria-busy:pointer-events-none";
@@ -43,6 +44,7 @@ const variants: Record<ButtonVariant, string> = {
 const sizes: Record<ButtonSize, string> = {
   sm: "h-8 gap-1.5 px-3 text-botao",
   md: "h-9 gap-2 px-3.5 text-botao-md",
+  touch: "size-11 gap-0 p-0 text-botao",
 };
 
 export function buttonStyles(
@@ -124,7 +126,8 @@ export function IconButton({
 export const inputClass = cx(
   "campo h-9 w-full rounded-control border border-control-line bg-control bg-clip-padding px-3 text-corpo text-fg transicao",
   "placeholder:text-subtle hover:border-control-line-hover",
-  "focus:border-focus focus:shadow-[0_0_0_3px_var(--ctl-anel)] focus:outline-none",
+  // Outline transparente (não `none`): o anel é a sombra, e em alto contraste (forced-colors) o contorno aparece.
+  "focus:border-focus focus:shadow-[0_0_0_3px_var(--ctl-anel)] focus:outline-2 focus:outline-transparent",
   "disabled:cursor-not-allowed disabled:border-line disabled:bg-transparent disabled:text-faint",
   "aria-[invalid=true]:border-pin",
 );
@@ -515,9 +518,16 @@ export function Chip({ label, value, onRemove }: { label: string; value: string;
   );
 }
 
-export function Kbd({ children }: { children: ReactNode }) {
+/**
+ * Tecla de atalho. `decorative`: dentro de um botão, fora do nome acessível (a tecla vai em `aria-keyshortcuts`);
+ * na lista de atalhos ela é o próprio conteúdo e fica visível para o leitor de tela.
+ */
+export function Kbd({ children, decorative = false }: { children: ReactNode; decorative?: boolean }) {
   return (
-    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded-badge px-1 font-sans text-legenda font-medium text-subtle shadow-[inset_0_0_0_1px_var(--fio-forte)]">
+    <kbd
+      aria-hidden={decorative || undefined}
+      className="inline-flex h-5 min-w-5 items-center justify-center rounded-badge px-1 font-sans text-legenda font-medium text-subtle shadow-[inset_0_0_0_1px_var(--fio-forte)]"
+    >
       {children}
     </kbd>
   );

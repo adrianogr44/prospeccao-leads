@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { cx } from "@/lib/cx";
 import { MoonIcon, SunIcon } from "./icons";
 
@@ -16,6 +16,9 @@ const isDark = () => !document.documentElement.classList.contains("light");
 export function useIsDark(): boolean {
   return useSyncExternalStore(subscribe, isDark, () => true);
 }
+
+/** Cor da barra do navegador (celular) acompanha o tema do app, que não é o do sistema. */
+const THEME_COLOR = { dark: "#0d1116", light: "#f2f4f7" } as const;
 
 export function setTheme(theme: "light" | "dark") {
   const root = document.documentElement;
@@ -33,6 +36,10 @@ export function setTheme(theme: "light" | "dark") {
  */
 export function ThemeToggle({ variant = "rail", className }: { variant?: "rail" | "icon"; className?: string }) {
   const dark = useIsDark();
+  useEffect(() => {
+    const meta = document.querySelector<HTMLMetaElement>("meta[name=theme-color]");
+    if (meta) meta.content = dark ? THEME_COLOR.dark : THEME_COLOR.light;
+  }, [dark]);
   const label = dark ? "Tema claro" : "Tema escuro";
   const Icon = dark ? SunIcon : MoonIcon;
 
@@ -44,7 +51,7 @@ export function ThemeToggle({ variant = "rail", className }: { variant?: "rail" 
       title={`Usar ${label.toLowerCase()}`}
       className={cx(
         "inline-flex items-center justify-center rounded-control text-muted transicao pressiona hover:bg-hover hover:text-fg",
-        variant === "rail" ? "w-[72px] flex-col gap-1 py-2" : "size-9",
+        variant === "rail" ? "w-[72px] flex-col gap-1 py-2" : "size-11",
         className,
       )}
     >

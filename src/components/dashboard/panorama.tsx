@@ -4,7 +4,7 @@ import { SITE_STATUSES, SITE_STATUS_LABEL, type LeadFilters, type SiteStatus, ty
 import { cx } from "@/lib/cx";
 import { formatNumber } from "@/lib/format";
 import { THERMO_LABEL } from "../lead-ui";
-import { Skeleton } from "../ui";
+import { ErrorState, Skeleton } from "../ui";
 
 // Distribuições em barras horizontais finas (substituem a rosca e as barras do Chart.js).
 // Cada linha é um botão que alterna um filtro; usam os números da fila atual.
@@ -51,7 +51,7 @@ function Block({ title, rows }: { title: string; rows: Row[] }) {
               aria-pressed={row.active}
               title={row.hint}
               onClick={row.onToggle}
-              className="group grid h-7 w-full grid-cols-[35%_1fr_40px] items-center gap-3 rounded-control px-2 text-left transicao hover:bg-hover"
+              className="group grid h-7 w-full grid-cols-[35%_1fr_40px] items-center gap-3 rounded-control px-2 text-left transicao hover:bg-hover max-md:h-11"
             >
               <span className={cx("truncate text-botao", row.active ? "font-medium text-fg" : "text-muted")}>
                 {row.label}
@@ -78,18 +78,30 @@ function Block({ title, rows }: { title: string; rows: Row[] }) {
 
 export function Panorama({
   stats,
+  error,
+  onRetry,
   filters,
   onChange,
 }: {
   stats: StatsResponse | undefined;
+  error: string | null;
+  onRetry: () => void;
   filters: LeadFilters;
   onChange: (patch: Partial<LeadFilters>) => void;
 }) {
+  if (!stats && error) {
+    return (
+      <div className="px-2">
+        <ErrorState message="Não consegui carregar o panorama." detail={error} onRetry={onRetry} />
+      </div>
+    );
+  }
   if (!stats) {
     return (
-      <div aria-hidden="true" className="space-y-5 px-2">
+      <div role="status" className="space-y-5 px-2">
+        <span className="sr-only">Carregando o panorama…</span>
         {[5, 4, 3].map((n) => (
-          <div key={n} className="space-y-2.5">
+          <div key={n} aria-hidden="true" className="space-y-2.5">
             <Skeleton className="h-3 w-24" />
             {Array.from({ length: n }, (_, i) => (
               <Skeleton key={i} className="h-3 w-full" />

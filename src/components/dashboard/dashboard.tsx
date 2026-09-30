@@ -65,7 +65,11 @@ type Selection =
 type LiveEvent = { kind: "list" } | { kind: "page" } | { kind: "select" } | { kind: "text"; text: string };
 
 const MAP_PREF = "radar:mapa";
+/** "0" = atalhos de tecla única desligados (WCAG 2.1.4). Ausente = ligados. */
+const SHORTCUTS_PREF = "radar:atalhos";
 const LEAD_SHEET_ID = "painel-empresa-folha";
+const PANEL_HEADING_ID = "painel-empresa-titulo";
+const LIVE_DELAY_MS = 400;
 
 const stageLabel = (stage: FunnelStage | null) => FUNNEL_STAGES.find((s) => s.id === stage)?.label ?? null;
 
@@ -90,6 +94,25 @@ function visible(selector: string): HTMLElement | null {
   );
 }
 
+/** Depois que o React aplicou a resposta de uma requisição (fora de evento, o quadro seguinte ainda pode ser o antigo). */
+function afterRender(callback: () => void) {
+  requestAnimationFrame(() => requestAnimationFrame(callback));
+}
+
+/** Campo do painel com texto que ainda não foi salvo nem enviado (marcado com `data-dirty`). */
+const isDirty = (field: HTMLElement | null) => field?.dataset.dirty === "true";
+
+const focusPanelHeading = () => document.getElementById(PANEL_HEADING_ID)?.focus();
+
+/** O botão acionado saiu da tela e o foco caiu no `body`: leva-o para `fallback`. Não puxa o foco de quem já seguiu adiante. */
+function refocusIfLost(fallback: () => HTMLElement | null) {
+  afterRender(() => {
+    const active = document.activeElement;
+    if (active && active !== document.body && active.isConnected) return;
+    fallback()?.focus();
+  });
+}
+
 export function Dashboard() {
   const router = useRouter();
   const pathname = usePathname();
@@ -109,6 +132,7 @@ export function Dashboard() {
   const isXl = useMediaQuery("(min-width: 1280px)");
   const mapPref = usePref(MAP_PREF);
   const mapOpen = mapPref === null ? isXl : mapPref === "1";
+  const shortcutsEnabled = usePref(SHORTCUTS_PREF) !== "0";
 
   const stage = activeStage(filters);
   const base = baseFilters(filters);
@@ -135,6 +159,8 @@ export function Dashboard() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [panoramaOpen, setPanoramaOpen] = useState(false);
   const [live, setLive] = useState<LiveEvent | null>(null);
+  /** Última linha fechada com Esc: continua sendo o ponto de Tab da lista. */
+  const [lastRowId, setLastRowId] = useState<string | null>(null);
 
   const items = leads.data?.items;
   const total = leads.data?.total;
@@ -160,6 +186,7 @@ export function Dashboard() {
     setView(next);
     setLive(event);
     setQueueDone(false);
+    setLastRowId(null);
   };
   const changeFilters = (patch: Partial<LeadFilters>) =>
     changeView({ ...view, filters: patchFilters(filters, patch), page: 1 });
@@ -180,6 +207,8 @@ export function Dashboard() {
   const closePanel = () => {
     const id = selectedId;
     setSelection({ kind: "none" });
+    setLastRowId(id);
+    setLive(null);
     focusRow(id);
   };
 
@@ -234,7 +263,14 @@ export function Dashboard() {
         markPoint(lead.id, false);
         setSent(null);
         setSendError(null);
+        setLive({ kind: "text", text: `Contato desmarcado: ${lead.name}.` });
         stats.reload();
+        // "Desmarcar" some da barra; o foco vai para o envio, que volta a existir.
+        refocusIfLost(
+          () =>
+            visible(`a[data-send="panel"][data-lead-id="${CSS.escape(lead.id)}"]`) ??
+            document.getElementById(PANEL_HEADING_ID),
+        );
       })
       .catch((e: unknown) => setSendError({ id: lead.id, message: errorMessage(e) }));
   };
@@ -298,13 +334,17 @@ export function Dashboard() {
       current ? { ...current, total: current.total - 1, points: current.points.filter((p) => p.id !== lead.id) } : current,
     );
     setSelection({ kind: "none" });
-    setLive({ kind: "text", text: `${lead.name} excluída.` });
+    setLive({ kind: "text", text: `Empresa excluída: ${lead.name}.` });
     focusRow(next?.id ?? null, "barra-lista");
     stats.reload();
     meta.reload();
   };
 
-  const toggleMap = () => setPref(MAP_PREF, mapOpen ? "0" : "1");
+  const toggleMap = () => {
+    setPref(MAP_PREF, mapOpen ? "0" : "1");
+    setLive({ kind: "text", text: mapOpen ? "Mapa recolhido." : "Mapa aberto." });
+  };
+  const setShortcutsEnabled = (enabled: boolean) => setPref(SHORTCUTS_PREF, enabled ? "1" : "0");
 
   /** Tecla E: o mesmo efeito do botão de envio (painel primeiro, depois a linha). */
   const sendSelected = () => {
@@ -323,20 +363,36 @@ export function Dashboard() {
     const openModal = document.querySelector("dialog[open]");
     // Outros diálogos (exportar, filtros) têm prioridade; a folha da empresa aceita os atalhos.
     if (openModal && openModal.id !== LEAD_SHEET_ID) return;
+    const field = target?.closest<HTMLElement>("input, textarea, select, [contenteditable='true']") ?? null;
     if (event.key === "Escape") {
-      if (openModal) return; // o próprio <dialog> fecha e avisa
+      // Esc não é atalho de tecla única: vale sempre, com os atalhos ligados ou não.
+      if (openModal) {
+        // Gaveta da empresa: campo com texto não salvo só perde o foco (o 2º Esc fecha). Sem isso o <dialog> fecha sozinho.
+        if (isDirty(field)) {
+          event.preventDefault();
+          focusPanelHeading();
+        }
+        return;
+      }
       if (shortcutsOpen) {
         setShortcutsOpen(false);
         return;
       }
-      if (target?.closest("input, textarea, select")) return;
+      if (field) {
+        // Só os campos do painel: busca e filtros seguem com o Esc do próprio campo.
+        if (!selected || !field.closest("[data-lead-panel]")) return;
+        event.preventDefault();
+        if (isDirty(field)) focusPanelHeading();
+        else closePanel();
+        return;
+      }
       if (selected) {
         event.preventDefault();
         closePanel();
       }
       return;
     }
-    if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+    if (field || !shortcutsEnabled) return;
     const inList = Boolean(target?.closest("[data-row-id]")) || target === document.body;
     switch (event.key.toLowerCase()) {
       case "j":
@@ -346,6 +402,8 @@ export function Dashboard() {
         move(-1, { focusList: inList });
         break;
       case "e":
+        // Abre o WhatsApp de verdade: só com empresa selecionada e foco na lista ou no painel, nunca de qualquer lugar.
+        if (!selected || !target?.closest("#lista-empresas, [data-lead-panel]")) return;
         sendSelected();
         break;
       case "n":
@@ -362,9 +420,13 @@ export function Dashboard() {
       case "/":
         visible("[data-search]")?.focus();
         break;
-      case "?":
-        setShortcutsOpen((v) => !v);
+      case "?": {
+        const next = !shortcutsOpen;
+        setShortcutsOpen(next);
+        if (next) requestAnimationFrame(() => document.getElementById("atalhos")?.focus());
+        else if (document.getElementById("atalhos")?.contains(target)) visible('[aria-controls="atalhos"]')?.focus();
         break;
+      }
       default:
         return;
     }
@@ -392,11 +454,20 @@ export function Dashboard() {
     const pos = index !== -1 && total !== undefined ? ` ${(view.page - 1) * view.pageSize + index + 1} de ${total}.` : "";
     liveText = `${selected.name}, ${thermoText(selected.stars, selected.score)}, ${SITE_STATUS_LABEL[selected.siteStatus]}.${pos}`;
   } else if (live && fresh && total !== undefined) {
+    const mapTotal = mapOpen && points.data && !points.loading ? points.data.total : undefined;
+    const mapText = mapTotal === undefined ? "" : ` Mapa: ${formatNumber(mapTotal)} ${mapTotal === 1 ? "empresa" : "empresas"}.`;
     liveText =
       live.kind === "page"
         ? `Página ${view.page} de ${pages}, ${items?.length ?? 0} empresas.`
-        : `${formatNumber(total)} empresas.${stage ? ` Etapa: ${stageLabel(stage)}.` : ""}`;
+        : `${formatNumber(total)} empresas.${stage ? ` Etapa: ${stageLabel(stage)}.` : ""}${mapText}`;
   }
+
+  // Espera 400 ms de silêncio antes de anunciar: digitar ou percorrer com J/K não vira uma enxurrada de falas.
+  const [spoken, setSpoken] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setSpoken(liveText), LIVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [liveText]);
 
   const baseEmpty =
     stats.data !== undefined && stats.data.funnel.found === 0 && Object.keys(base).length === 0;
@@ -516,6 +587,7 @@ export function Dashboard() {
         <LeadRows
           items={items}
           selectedId={selectedId}
+          tabFallbackId={lastRowId}
           showCity={cities.length >= 2}
           settings={outreach.data}
           busy={leads.loading}
@@ -531,14 +603,15 @@ export function Dashboard() {
 
   const panorama = (
     <section aria-labelledby="panorama-titulo" className={cx(panelClass, "flex min-h-0 flex-col xl:flex-1")}>
-      <div className="flex h-10 shrink-0 items-center justify-between gap-2 px-4 xl:h-11">
+      <div className="flex h-10 shrink-0 items-center justify-between gap-2 px-4 max-md:h-12 xl:h-11">
         <h2 id="panorama-titulo" className="rotulo">
           Panorama
         </h2>
         <Button
           variant="ghost"
           size="sm"
-          className="-mr-2 xl:hidden"
+          className="-mr-2 max-md:h-11 xl:hidden"
+          aria-label={panoramaOpen ? "Recolher panorama" : "Abrir panorama"}
           aria-expanded={panoramaOpen}
           aria-controls="panorama-conteudo"
           onClick={() => setPanoramaOpen((v) => !v)}
@@ -549,9 +622,15 @@ export function Dashboard() {
       </div>
       <div
         id="panorama-conteudo"
-        className={cx("relative min-h-0 flex-1 overflow-y-auto px-2 pb-4", !panoramaOpen && "hidden", "xl:block")}
+        className={cx("relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4", !panoramaOpen && "hidden", "xl:block")}
       >
-        <Panorama stats={stats.data} filters={filters} onChange={changeFilters} />
+        <Panorama
+          stats={stats.data}
+          error={stats.error}
+          onRetry={stats.reload}
+          filters={filters}
+          onChange={changeFilters}
+        />
       </div>
     </section>
   );
@@ -559,7 +638,7 @@ export function Dashboard() {
   return (
     <div className="flex flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_clamp(400px,32vw,480px)] xl:grid-rows-[auto_minmax(0,1fr)] xl:gap-x-6 desk:h-[calc(100dvh-48px)]">
       <p aria-live="polite" className="sr-only">
-        {liveText}
+        {spoken}
       </p>
 
       {/* Topo */}
@@ -577,7 +656,7 @@ export function Dashboard() {
         <Link
           href="/pesquisas"
           aria-label="Nova pesquisa"
-          className={buttonStyles("secondary", "md", "max-sm:w-9 max-sm:px-0")}
+          className={buttonStyles("secondary", "md", "max-md:h-11 max-sm:w-11 max-sm:px-0")}
         >
           <PlusIcon />
           <span className="hidden sm:inline">Nova pesquisa</span>
@@ -640,9 +719,11 @@ export function Dashboard() {
                 onDir={() => changeView({ ...view, dir: view.dir === "asc" ? "desc" : "asc", page: 1 })}
                 shortcutsOpen={shortcutsOpen}
                 onShortcutsOpen={setShortcutsOpen}
+                shortcutsEnabled={shortcutsEnabled}
+                onShortcutsEnabled={setShortcutsEnabled}
               />
               {/* relative: o scroller contém os textos sr-only (posição absoluta) das linhas */}
-              <div id="lista-empresas" className="relative desk:min-h-0 desk:flex-1 desk:overflow-y-auto">
+              <div id="lista-empresas" className="relative desk:min-h-0 desk:flex-1 desk:overflow-y-auto desk:overscroll-contain">
                 {listBody}
               </div>
               {items && items.length > 0 && (

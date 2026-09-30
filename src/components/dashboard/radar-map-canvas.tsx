@@ -315,6 +315,8 @@ export default function RadarMapCanvas({
       markerZoomAnimation: !reduced,
     }).setView(BRAZIL, 4);
     map.attributionControl.setPrefix(false);
+    // role="group": um div focável só com aria-label não tem nome garantido em todos os leitores de tela.
+    map.getContainer().setAttribute("role", "group");
     map.getContainer().setAttribute("aria-label", "Mapa das empresas. Use as setas para mover e + ou − para o zoom.");
 
     const dustPane = map.createPane("poeira");

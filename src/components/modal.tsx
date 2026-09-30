@@ -66,11 +66,11 @@ export function Modal({
         <h2 id={titleId} className="min-w-0 font-display text-h2 font-semibold">
           {title}
         </h2>
-        <IconButton label="Fechar" onClick={closeFrom} className="-mt-1 -mr-1">
+        <IconButton label="Fechar" onClick={closeFrom} className="-mt-1 -mr-1 max-md:size-11">
           <CloseIcon />
         </IconButton>
       </div>
-      <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-5 text-muted">
+      <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 text-muted">
         {typeof children === "function" ? children(closeFrom) : children}
       </div>
     </dialog>

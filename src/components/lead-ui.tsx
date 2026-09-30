@@ -46,9 +46,9 @@ export function thermoText(stars: number, score: number): string {
   return level === 0 ? "Não analisada" : `${THERMO_LABEL[level]}, ${Math.round(score)} de 100`;
 }
 
-function Segments({ level, large }: { level: number; large: boolean }) {
+function Segments({ level, large, dim = false }: { level: number; large: boolean; dim?: boolean }) {
   return (
-    <span className={cx("inline-flex shrink-0 items-center", large ? "gap-[3px]" : "gap-0.5")}>
+    <span className={cx("inline-flex shrink-0 items-center", large ? "gap-[3px]" : "gap-0.5", dim && "opacity-80")}>
       {[1, 2, 3, 4, 5].map((n) => (
         <span
           key={n}
@@ -74,6 +74,7 @@ export function Thermometer({
   score,
   size = "compact",
   hideLabel = false,
+  dim = false,
   className,
 }: {
   stars: number;
@@ -81,6 +82,8 @@ export function Thermometer({
   size?: "compact" | "large";
   /** Só a barra e o número (celular). */
   hideLabel?: boolean;
+  /** Linha já contatada: escurece só os segmentos; rótulo e número trocam de cor, sem opacidade (contraste AA). */
+  dim?: boolean;
   className?: string;
 }) {
   const level = thermoLevel(stars);
@@ -107,14 +110,20 @@ export function Thermometer({
 
   return (
     <span role="img" aria-label={thermoText(stars, score)} className={cx("inline-flex items-center", className)}>
-      <Segments level={level} large={false} />
+      <Segments level={level} large={false} dim={dim} />
       {!hideLabel && (
-        <span aria-hidden="true" className={cx("ml-2 text-legenda font-medium", LABEL_COLOR[level] ?? "text-subtle")}>
+        <span
+          aria-hidden="true"
+          className={cx("ml-2 text-legenda font-medium", dim ? "text-muted" : (LABEL_COLOR[level] ?? "text-subtle"))}
+        >
           {label}
         </span>
       )}
       {level > 0 && (
-        <span aria-hidden="true" className="ml-1.5 font-display text-botao font-semibold text-fg tabular-nums">
+        <span
+          aria-hidden="true"
+          className={cx("ml-1.5 font-display text-botao font-semibold tabular-nums", dim ? "text-muted" : "text-fg")}
+        >
           {Math.round(score)}
         </span>
       )}
@@ -259,7 +268,7 @@ function ContactLink({
       href={href}
       aria-label={external ? `${label} (abre em nova aba)` : label}
       title={label}
-      className="alvo inline-flex size-7 items-center justify-center rounded-control text-muted transicao hover:bg-hover hover:text-fg"
+      className="alvo inline-flex size-7 items-center justify-center rounded-control text-muted transicao hover:bg-hover hover:text-fg max-md:size-11"
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
       {children}

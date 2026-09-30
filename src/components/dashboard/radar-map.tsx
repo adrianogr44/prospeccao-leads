@@ -72,10 +72,10 @@ function LegendItems({ withContext }: { withContext: boolean }) {
 function Legend({ withContext }: { withContext: boolean }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="absolute bottom-3 left-3 z-[500] max-w-[calc(100%-24px)]">
+    <div className={cx("absolute bottom-3 left-3 z-[500] max-w-[calc(100%-24px)]", open && "max-sm:bottom-8")}>
       {/* Celular: um botão abre a mesma lista */}
       <div className="sm:hidden">
-        <Button size="sm" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="bg-surface-2">
+        <Button size="sm" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="bg-surface-2 max-md:h-11">
           Legenda
         </Button>
       </div>
@@ -96,6 +96,14 @@ function Legend({ withContext }: { withContext: boolean }) {
 }
 
 // ---------- Mapa ----------
+
+const MAP_OPEN_ID = "mapa-abrir";
+const MAP_COLLAPSE_ID = "mapa-recolher";
+
+/** O botão acionado some ao trocar de estado: o foco vai para o equivalente do outro estado (não cai no body). */
+function focusAfterToggle(id: string) {
+  requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(id)?.focus()));
+}
 
 export function RadarMap({
   points,
@@ -139,16 +147,27 @@ export function RadarMap({
 
   if (!open) {
     return (
-      <div className="flex h-10 items-center justify-between gap-2 rounded-panel bg-surface pr-1 pl-3 shadow-elev-1">
+      <div className="flex h-10 items-center justify-between gap-2 rounded-panel bg-surface pr-1 pl-3 shadow-elev-1 max-md:h-12">
         <p className="flex min-w-0 items-center gap-2 text-muted">
           <MapIcon className="size-4 shrink-0 text-subtle" />
           <span className="truncate">Mapa</span>
         </p>
-        <Button variant="ghost" size="sm" onClick={onToggle} aria-expanded={false} aria-keyshortcuts="M">
+        <Button
+          id={MAP_OPEN_ID}
+          variant="ghost"
+          size="sm"
+          className="max-md:h-11"
+          onClick={() => {
+            onToggle();
+            focusAfterToggle(MAP_COLLAPSE_ID);
+          }}
+          aria-expanded={false}
+          aria-keyshortcuts="M"
+        >
           Abrir mapa
           <ChevronDownIcon />
           <span className="hidden md:contents">
-            <Kbd>M</Kbd>
+            <Kbd decorative>M</Kbd>
           </span>
         </Button>
       </div>
@@ -156,7 +175,8 @@ export function RadarMap({
   }
 
   const empty = data !== undefined && data.total === 0;
-  const regionLabel = `Mapa das empresas, ${total === undefined ? "carregando" : `${formatNumber(total)} pontos`}`;
+  const pending = points.error && !data ? "não consegui carregar os pontos" : "carregando";
+  const regionLabel = `Mapa das empresas, ${total === undefined ? pending : `${formatNumber(total)} pontos`}`;
 
   return (
     <div className="relative overflow-hidden rounded-panel bg-surface shadow-elev-1">
@@ -258,7 +278,7 @@ export function RadarMap({
                 title="Aproximar"
                 disabled={!zoom.canZoomIn}
                 onClick={() => api.current?.zoomIn()}
-                className="flex size-8 items-center justify-center text-muted transicao not-disabled:hover:bg-selected not-disabled:hover:text-fg disabled:text-faint"
+                className="flex size-8 items-center justify-center text-muted transicao not-disabled:hover:bg-selected not-disabled:hover:text-fg disabled:text-faint max-md:size-11"
               >
                 <PlusIcon />
               </button>
@@ -269,7 +289,7 @@ export function RadarMap({
                 title="Afastar"
                 disabled={!zoom.canZoomOut}
                 onClick={() => api.current?.zoomOut()}
-                className="flex size-8 items-center justify-center text-muted transicao not-disabled:hover:bg-selected not-disabled:hover:text-fg disabled:text-faint"
+                className="flex size-8 items-center justify-center text-muted transicao not-disabled:hover:bg-selected not-disabled:hover:text-fg disabled:text-faint max-md:size-11"
               >
                 <MinusIcon />
               </button>
@@ -278,7 +298,7 @@ export function RadarMap({
               <IconButton
                 label="Recentrar nos pontos"
                 variant="secondary"
-                className="rounded-card bg-surface-2 shadow-elev-2"
+                className="rounded-card bg-surface-2 shadow-elev-2 max-md:size-11"
                 onClick={() => api.current?.recenter()}
               >
                 <LocateIcon />
@@ -290,13 +310,28 @@ export function RadarMap({
 
         {data && !empty && <Legend withContext={context !== undefined} />}
       </section>
-      <div id="depois-do-mapa" className="flex h-9 items-center justify-between gap-2 border-t border-line pr-1 pl-3">
+      <div
+        id="depois-do-mapa"
+        className="flex h-9 items-center justify-between gap-2 border-t border-line pr-1 pl-3 max-md:h-12"
+      >
         <p className="min-w-0 truncate text-legenda text-subtle tabular-nums">{countText}</p>
-        <Button variant="ghost" size="sm" className="h-7" onClick={onToggle} aria-expanded aria-keyshortcuts="M">
+        <Button
+          id={MAP_COLLAPSE_ID}
+          variant="ghost"
+          size="sm"
+          className="h-7 max-md:h-11"
+          aria-label="Recolher mapa"
+          onClick={() => {
+            onToggle();
+            focusAfterToggle(MAP_OPEN_ID);
+          }}
+          aria-expanded
+          aria-keyshortcuts="M"
+        >
           Recolher
           <ChevronUpIcon />
           <span className="hidden md:contents">
-            <Kbd>M</Kbd>
+            <Kbd decorative>M</Kbd>
           </span>
         </Button>
       </div>
