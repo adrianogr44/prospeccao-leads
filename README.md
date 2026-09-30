@@ -69,7 +69,7 @@ Padrões que vêm de fábrica, todos editáveis em Configurações:
 
 | Item | Padrão |
 |---|---|
-| Empresa / remetente | LançaSite / Adriano |
+| Empresa / remetente | SitesCraft / Adriano |
 | Oferta | Landing Page Completa por R$ 697, entrega em 7 dias |
 | Incluso no valor | Domínio .com.br e hospedagem do primeiro ano |
 | Custo de referência | Hospedagem R$ 27,96/mês (renovação R$ 39,90/mês) e domínio R$ 40/ano |

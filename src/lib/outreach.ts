@@ -16,7 +16,7 @@ Posso te mandar um exemplo sem compromisso?`;
 
 /** Padrões usados quando não há configuração salva e no botão "Restaurar padrão". */
 export const DEFAULT_OUTREACH_SETTINGS: OutreachSettings = {
-  companyName: "LançaSite",
+  companyName: "SitesCraft",
   senderName: "Adriano",
   deliveryDays: 7,
   includeHostingAndDomain: true,
