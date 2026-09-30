@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/lib/cx";
-import { CalendarIcon, DashboardIcon, SearchIcon, SettingsIcon } from "./icons";
+import { CalendarIcon, DashboardIcon, RadarIcon, SearchIcon, SettingsIcon } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
 
 const links = [
@@ -13,39 +13,94 @@ const links = [
   { href: "/configuracoes", label: "Configurações", Icon: SettingsIcon },
 ] as const;
 
-export function Sidebar() {
+function useActive() {
   const pathname = usePathname();
+  return (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+}
+
+/**
+ * Casca: trilho de 88 px (≥ 768) com a marca, as quatro seções e o tema no rodapé;
+ * no celular, barra superior de 48 (marca + tema) e barra inferior de 56 com as abas.
+ */
+export function Sidebar() {
+  const isActive = useActive();
 
   return (
-    <aside className="border-b border-line bg-surface md:sticky md:top-0 md:h-dvh md:w-56 md:shrink-0 md:border-r md:border-b-0">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 md:h-full md:flex-col md:items-stretch md:gap-3 md:px-3 md:py-4">
-        <p className="px-2 text-sm font-semibold tracking-tight md:pb-2">Prospecção de Leads</p>
-        <nav aria-label="Principal" className="order-last w-full md:order-none md:flex-1">
-          <ul className="flex gap-1 md:flex-col">
+    <>
+      {/* Trilho (tablet e desktop) */}
+      <aside className="sticky top-0 hidden h-dvh w-[88px] shrink-0 flex-col items-center border-r border-line bg-canvas py-3 md:flex">
+        <Link
+          href="/"
+          aria-label="Prospecção de Leads, início"
+          title="Prospecção de Leads"
+          className="mb-4 inline-flex size-14 items-center justify-center rounded-card transicao hover:bg-hover"
+        >
+          <RadarIcon className="size-7" />
+        </Link>
+        <nav aria-label="Principal" className="flex-1">
+          <ul className="flex flex-col gap-1">
             {links.map(({ href, label, Icon }) => {
-              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              const active = isActive(href);
               return (
                 <li key={href}>
                   <Link
                     href={href}
                     aria-current={active ? "page" : undefined}
                     className={cx(
-                      "flex items-center gap-2 rounded-md px-2 py-1.5 font-medium transition-colors",
-                      active
-                        ? "bg-canvas text-accent ring-1 ring-line"
-                        : "text-muted hover:bg-canvas hover:text-fg",
+                      "flex w-[72px] flex-col items-center gap-1 rounded-control py-2 transicao",
+                      active ? "bg-selected text-fg" : "text-muted hover:bg-hover hover:text-fg",
                     )}
                   >
-                    <Icon />
-                    {label}
+                    <Icon className="size-5" />
+                    <span className={cx("font-display text-legenda", active ? "font-semibold" : "font-medium")}>
+                      {label}
+                    </span>
                   </Link>
                 </li>
               );
             })}
           </ul>
         </nav>
-        <ThemeToggle className="ml-auto md:ml-0 md:w-full md:justify-start" />
-      </div>
-    </aside>
+        <ThemeToggle />
+      </aside>
+
+      {/* Barra superior (celular) */}
+      <header className="flex h-12 items-center justify-between border-b border-line bg-canvas px-4 md:hidden">
+        <Link href="/" className="inline-flex items-center gap-2.5 rounded-control">
+          <RadarIcon className="size-6" />
+          <span className="font-display text-h2 font-semibold">Prospecção de Leads</span>
+        </Link>
+        <ThemeToggle variant="icon" className="-mr-2" />
+      </header>
+
+      {/* Abas inferiores (celular) */}
+      <nav
+        aria-label="Principal"
+        className="fixed inset-x-0 bottom-0 z-30 h-14 border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        <ul className="grid h-full grid-cols-4">
+          {links.map(({ href, label, Icon }) => {
+            const active = isActive(href);
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={cx(
+                    "flex h-full flex-col items-center justify-center gap-0.5 transicao",
+                    active ? "text-fg" : "text-subtle hover:text-fg",
+                  )}
+                >
+                  <Icon className="size-5" />
+                  <span className={cx("font-display text-legenda", active ? "font-semibold" : "font-medium")}>
+                    {label}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </>
   );
 }

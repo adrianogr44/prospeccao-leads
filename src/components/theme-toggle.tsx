@@ -1,8 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { cx } from "@/lib/cx";
 import { MoonIcon, SunIcon } from "./icons";
-import { buttonStyles } from "./ui";
 
 function subscribe(onChange: () => void): () => void {
   const observer = new MutationObserver(onChange);
@@ -10,34 +10,46 @@ function subscribe(onChange: () => void): () => void {
   return () => observer.disconnect();
 }
 
-const isDark = () => document.documentElement.classList.contains("dark");
+/** Escuro é o padrão: só o claro é marcado com a classe `light`. */
+const isDark = () => !document.documentElement.classList.contains("light");
 
 export function useIsDark(): boolean {
-  return useSyncExternalStore(subscribe, isDark, () => false);
+  return useSyncExternalStore(subscribe, isDark, () => true);
 }
 
-export function ThemeToggle({ className }: { className?: string }) {
-  const dark = useIsDark();
-
-  function toggle() {
-    const next = !dark;
-    document.documentElement.classList.toggle("dark", next);
-    try {
-      localStorage.setItem("theme", next ? "dark" : "light");
-    } catch {
-      // armazenamento indisponível: o tema vale só nesta visita
-    }
+export function setTheme(theme: "light" | "dark") {
+  const root = document.documentElement;
+  root.classList.remove("light", "dark");
+  root.classList.add(theme);
+  try {
+    localStorage.setItem("theme", theme);
+  } catch {
+    // armazenamento indisponível: o tema vale só nesta visita
   }
+}
+
+/**
+ * Alternador de tema. `rail`: ícone com rótulo embaixo (trilho de 88 px); `icon`: só o ícone (barra do celular).
+ */
+export function ThemeToggle({ variant = "rail", className }: { variant?: "rail" | "icon"; className?: string }) {
+  const dark = useIsDark();
+  const label = dark ? "Tema claro" : "Tema escuro";
+  const Icon = dark ? SunIcon : MoonIcon;
 
   return (
     <button
       type="button"
-      onClick={toggle}
-      aria-pressed={dark}
-      className={buttonStyles("ghost", "sm", className)}
+      onClick={() => setTheme(dark ? "light" : "dark")}
+      aria-label={variant === "icon" ? `Usar ${label.toLowerCase()}` : undefined}
+      title={`Usar ${label.toLowerCase()}`}
+      className={cx(
+        "inline-flex items-center justify-center rounded-control text-muted transicao pressiona hover:bg-hover hover:text-fg",
+        variant === "rail" ? "w-[72px] flex-col gap-1 py-2" : "size-9",
+        className,
+      )}
     >
-      {dark ? <SunIcon /> : <MoonIcon />}
-      <span>{dark ? "Tema claro" : "Tema escuro"}</span>
+      <Icon className={variant === "rail" ? "size-5" : "size-5"} />
+      {variant === "rail" && <span className="font-display text-legenda font-medium">{label}</span>}
     </button>
   );
 }

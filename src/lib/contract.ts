@@ -123,6 +123,8 @@ export const leadFiltersSchema = z.object({
   hasWhatsapp: triState,
   hasInstagram: triState,
   contacted: triState, // "yes" = já abordada
+  needsSite: triState, // "yes" = NONE, SOCIAL_ONLY, OLD ou UNREACHABLE
+  hasContact: triState, // "yes" = tem WhatsApp, telefone ou e-mail
   minRating: z.coerce.number().min(0).max(5).optional(),
   maxRating: z.coerce.number().min(0).max(5).optional(),
   minReviews: z.coerce.number().int().min(0).optional(),
@@ -202,6 +204,43 @@ export interface StatsResponse {
   byCity: CountBy[]; // top 10
   byCategory: CountBy[]; // top 10
   byPlatform: CountBy[]; // top 8
+  funnel: FunnelStats;
+}
+
+/** Status que indicam que a empresa precisa de um site novo. */
+export const NEEDS_SITE_STATUSES = ["NONE", "SOCIAL_ONLY", "OLD", "UNREACHABLE"] as const satisfies readonly SiteStatus[];
+
+/**
+ * Funil de prospecção. Calculado sem os filtros `needsSite`, `hasContact` e `contacted`
+ * (os que as etapas aplicam), para os números não mudarem quando uma etapa é selecionada.
+ */
+export interface FunnelStats {
+  found: number; // total no filtro
+  needsSite: number; // NEEDS_SITE_STATUSES
+  reachable: number; // needsSite com WhatsApp, telefone ou e-mail
+  ready: number; // reachable ainda não contatadas: a fila de hoje
+  contacted: number; // needsSite já contatadas
+}
+
+// ---------- Mapa ----------
+
+export interface LeadPoint {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  score: number;
+  stars: number;
+  siteStatus: SiteStatus;
+  contacted: boolean;
+}
+
+export const LEAD_POINTS_LIMIT = 3000;
+
+export interface LeadPointsResponse {
+  points: LeadPoint[]; // só leads com coordenada, maior score primeiro
+  total: number; // leads com coordenada no filtro
+  truncated: boolean; // total > LEAD_POINTS_LIMIT
 }
 
 // ---------- Opções de filtro e configuração ----------
@@ -312,6 +351,8 @@ export interface ApiError {
  *
  * GET    /api/meta                      -> MetaResponse
  * GET    /api/leads?{LeadListQuery}     -> LeadListResponse
+ * GET    /api/leads/points?{LeadFilters} -> LeadPointsResponse
+ * GET    /api/leads/:id                 -> LeadDTO
  * PATCH  /api/leads/:id   {notes?, contacted?, whatsapp?} -> LeadDTO
  * DELETE /api/leads/:id                 -> 204 (exclui e bloqueia reimportação)
  * GET    /api/settings/outreach         -> OutreachSettings (padrão se nunca salvo)

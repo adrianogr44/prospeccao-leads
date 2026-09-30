@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, type MouseEvent, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { CloseIcon } from "./icons";
-import { buttonStyles } from "./ui";
+import { IconButton } from "./ui";
 
 /** Fecha o <dialog> que contém o elemento clicado. */
 function closeFrom(event: MouseEvent<HTMLElement>) {
@@ -11,8 +11,27 @@ function closeFrom(event: MouseEvent<HTMLElement>) {
 }
 
 /**
- * Diálogo nativo (<dialog>): foco preso, Esc e restauração de foco vêm do navegador.
- * O pai monta o componente para abrir e o desmonta em `onClose`.
+ * Abre o <dialog> como modal ao montar (foco preso, Esc e restauração de foco vêm do navegador).
+ * Depois de abrir, foca o elemento marcado com `data-autofocus` (ou o primeiro campo), para o navegador
+ * não parar o foco na área rolável.
+ */
+function useShowModal() {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog || dialog.open) return;
+    dialog.showModal();
+    const target =
+      dialog.querySelector<HTMLElement>("[data-autofocus]") ??
+      dialog.querySelector<HTMLElement>("select, input, textarea, button, a[href]");
+    target?.focus();
+  }, []);
+  return ref;
+}
+
+/**
+ * Diálogo nativo. O pai monta o componente para abrir e o desmonta em `onClose`.
+ * `center`: diálogo (vitrine, raio 14). `drawer`: gaveta à direita (muro, borda esquerda).
  */
 export function Modal({
   title,
@@ -25,13 +44,8 @@ export function Modal({
   onClose: () => void;
   children: ReactNode | ((close: (event: MouseEvent<HTMLElement>) => void) => ReactNode);
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const ref = useShowModal();
   const titleId = useId();
-
-  useEffect(() => {
-    const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal();
-  }, []);
 
   return (
     <dialog
@@ -42,28 +56,67 @@ export function Modal({
         if (event.target === event.currentTarget) event.currentTarget.close();
       }}
       className={cx(
-        "border-line bg-canvas p-0 text-fg backdrop:bg-black/40 open:flex open:flex-col",
+        "p-0 text-fg open:flex open:flex-col",
         variant === "center"
-          ? "m-auto max-h-[calc(100dvh-2rem)] w-[min(32rem,calc(100vw-2rem))] rounded-lg border"
-          : "m-0 ml-auto h-dvh max-h-none w-full max-w-lg rounded-none border-l",
+          ? "anima-dialogo m-auto max-h-[calc(100dvh-2rem)] w-[min(440px,calc(100vw-32px))] rounded-panel bg-surface-3 shadow-elev-3"
+          : "anima-gaveta m-0 ml-auto h-dvh max-h-none w-[min(480px,100vw)] max-w-none bg-surface-2 shadow-[-1px_0_0_var(--fio-forte)] light:shadow-elev-2",
       )}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
-        <h2 id={titleId} className="min-w-0 text-base font-semibold">
+      <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+        <h2 id={titleId} className="min-w-0 font-display text-h2 font-semibold">
           {title}
         </h2>
-        <button
-          type="button"
-          onClick={closeFrom}
-          className={buttonStyles("ghost", "sm", "px-1.5")}
-          aria-label="Fechar"
-        >
+        <IconButton label="Fechar" onClick={closeFrom} className="-mt-1 -mr-1">
           <CloseIcon />
-        </button>
+        </IconButton>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-5 text-muted">
         {typeof children === "function" ? children(closeFrom) : children}
       </div>
+    </dialog>
+  );
+}
+
+/**
+ * Folha sem cabeçalho próprio: o conteúdo desenha o seu.
+ * `side`: gaveta à direita (tela cheia no celular). `bottom`: folha inferior de 80 % da altura.
+ */
+export function Sheet({
+  id,
+  label,
+  side = "right",
+  onClose,
+  children,
+  className,
+}: {
+  id?: string;
+  /** Nome acessível do diálogo. */
+  label: string;
+  side?: "right" | "bottom";
+  onClose: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  const ref = useShowModal();
+
+  return (
+    <dialog
+      ref={ref}
+      id={id}
+      aria-label={label}
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) event.currentTarget.close();
+      }}
+      className={cx(
+        "max-h-none max-w-none bg-surface-2 p-0 text-fg open:flex open:flex-col",
+        side === "right"
+          ? "anima-gaveta m-0 ml-auto h-dvh w-full shadow-[-1px_0_0_var(--fio-forte)] md:w-[min(480px,100vw)] light:shadow-elev-2"
+          : "anima-folha mx-0 mt-auto mb-0 h-[80dvh] w-full rounded-t-panel shadow-elev-2",
+        className,
+      )}
+    >
+      {children}
     </dialog>
   );
 }

@@ -1,8 +1,17 @@
 import type { Prisma } from "@prisma/client";
-import type { LeadFilters, LeadListQuery } from "@/lib/contract";
+import { NEEDS_SITE_STATUSES, type LeadFilters, type LeadListQuery } from "@/lib/contract";
 
 /** "Sem site" = NONE ou SOCIAL_ONLY. */
 export const NO_SITE_STATUSES = ["NONE", "SOCIAL_ONLY"];
+
+/** Precisa de site novo: sem site, só rede social, antigo ou fora do ar. */
+export const NEEDS_SITE: string[] = [...NEEDS_SITE_STATUSES];
+
+/** Tem algum contato para receber a proposta. */
+export const HAS_CONTACT: Prisma.LeadWhereInput = {
+  OR: [{ whatsapp: { not: null } }, { phone: { not: null } }, { email: { not: null } }],
+};
+const NO_CONTACT: Prisma.LeadWhereInput = { whatsapp: null, phone: null, email: null };
 
 /** Único lugar que traduz filtros da API em where do Prisma (lista, indicadores e exportação). */
 export function buildLeadWhere(f: LeadFilters): Prisma.LeadWhereInput {
@@ -31,6 +40,10 @@ export function buildLeadWhere(f: LeadFilters): Prisma.LeadWhereInput {
   if (f.hasInstagram === "no") and.push({ instagram: null });
   if (f.contacted === "yes") and.push({ contactedAt: { not: null } });
   if (f.contacted === "no") and.push({ contactedAt: null });
+  if (f.needsSite === "yes") and.push({ siteStatus: { in: NEEDS_SITE } });
+  if (f.needsSite === "no") and.push({ siteStatus: { notIn: NEEDS_SITE } });
+  if (f.hasContact === "yes") and.push(HAS_CONTACT);
+  if (f.hasContact === "no") and.push(NO_CONTACT);
   if (f.minRating !== undefined) and.push({ rating: { gte: f.minRating } });
   if (f.maxRating !== undefined) and.push({ rating: { lte: f.maxRating } });
   if (f.minReviews !== undefined) and.push({ reviewCount: { gte: f.minReviews } });

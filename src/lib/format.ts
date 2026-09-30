@@ -12,6 +12,22 @@ const dateTimeFormat = new Intl.DateTimeFormat("pt-BR", {
 });
 
 const dateFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+const dayMonthFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
+const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+/** "30/09" */
+export function formatDayMonth(iso: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "" : dayMonthFormat.format(date);
+}
+
+/** "14:32" */
+export function formatTime(iso: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "" : timeFormat.format(date);
+}
 
 export function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -35,6 +51,15 @@ export function formatDateTime(iso: string | null): string {
 
 export function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
+}
+
+/** "(19) 99251-1961"; sem DDD reconhecível, devolve como veio. */
+export function formatPhone(value: string): string {
+  let digits = onlyDigits(value);
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return value;
 }
 
 export function whatsappUrl(value: string): string {

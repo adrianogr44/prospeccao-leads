@@ -1,68 +1,564 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* Escuro é o padrão (vive em :root); o claro é :root.light. A classe .dark continua válida. */
+@custom-variant dark (&:where(:root:not(.light), :root:not(.light) *));
+@custom-variant light (&:where(.light, .light *));
+/* Painel fixo sem rolagem de página: largura de desktop e altura suficiente. */
+@custom-variant desk (@media (min-width: 1280px) and (min-height: 760px));
 
-:root {
-  color-scheme: light;
-  --canvas: #ffffff;
-  --surface: #f7f7f5;
-  --line: #e6e6e3;
-  --fg: #1f1f1e;
-  --muted: #6b6b68;
-  --accent: #0f7b4f;
-  --accent-soft: #9fd3bb;
-  --warn: #b45309;
-  --danger: #b42318;
-}
+/* ---------- Tokens: "Radar noturno" (docs/design/visual-radar.md) ---------- */
 
+:root,
 :root.dark {
   color-scheme: dark;
-  --canvas: #0f1011;
-  --surface: #17181a;
-  --line: #2a2c2f;
-  --fg: #ececea;
-  --muted: #9a9a96;
-  --accent: #3ecf8e;
-  --accent-soft: #24785a;
-  --warn: #f0a44b;
-  --danger: #f97066;
+  /* superfícies: matiz 218°, sat. 26 %, luminosidade 7 / 10 / 13 / 17 % */
+  --rua: #0d1116;
+  --calcada: #131820;
+  --muro: #191f2a;
+  --vitrine: #202837;
+  --realce: rgba(255, 255, 255, 0.05);
+  --realce-forte: rgba(255, 255, 255, 0.09);
+  --scrim: rgba(4, 6, 10, 0.62);
+  /* texto */
+  --tinta-1: #ebeef4;
+  --tinta-2: #acb5c3;
+  --tinta-3: #8d96a5;
+  --tinta-4: #606876;
+  /* fios */
+  --fio-suave: rgba(255, 255, 255, 0.05);
+  --fio: rgba(255, 255, 255, 0.08);
+  --fio-forte: rgba(255, 255, 255, 0.16);
+  --fio-foco: #8db4f0;
+  /* letreiro (âmbar) */
+  --letreiro: #f5a623;
+  --letreiro-brilho: #ffc65a;
+  --letreiro-texto: #f5a623;
+  --numero-heroi: #ffc65a;
+  --letreiro-suave: rgba(245, 166, 35, 0.14);
+  --letreiro-halo: rgba(245, 166, 35, 0.55);
+  /* envio (verde) */
+  --envio: #25d366;
+  --envio-hover: #3be07f;
+  --envio-ativo: #1fb85a;
+  --envio-borda: transparent;
+  --sobre-envio: #04130a;
+  --envio-texto: #3ddc84;
+  --envio-suave: rgba(37, 211, 102, 0.12);
+  --envio-anel: var(--envio);
+  /* pino (vermelho) e névoa */
+  --pino: #f2625b;
+  --pino-texto: #ff7a73;
+  --pino-suave: rgba(242, 98, 91, 0.14);
+  --pino-solido: #c8342e;
+  --pino-solido-hover: #d6403a;
+  --pino-solido-ativo: #b12b26;
+  --sobre-pino: #ffffff;
+  --nevoa: #6f7a8a;
+  /* termômetro, do nível 5 ao 1 */
+  --termo-5: #ffc65a;
+  --termo-4: #f5a623;
+  --termo-3: #b9802a;
+  --termo-2: #8b7a5c;
+  --termo-1: #6f7a8a;
+  --termo-vazio: rgba(255, 255, 255, 0.1);
+  /* controles */
+  --ctl-bg: #090c10;
+  --ctl-borda: rgba(255, 255, 255, 0.36);
+  --ctl-borda-hover: rgba(255, 255, 255, 0.52);
+  --ctl-anel: rgba(141, 180, 240, 0.28);
+  --primario: #ebeef4;
+  --primario-hover: #d0d3d9;
+  --primario-ativo: #bec3cb;
+  --sobre-primario: #0d1116;
+  --desab-bg: rgba(255, 255, 255, 0.05);
+  /* profundidade: anel, sem sombra projetada */
+  --elev-1: 0 0 0 1px var(--fio);
+  --elev-2: 0 0 0 1px var(--fio-forte);
+  --elev-3: 0 0 0 1px var(--fio-forte);
+  /* mapa */
+  --mapa-filtro: grayscale(1) invert(1) sepia(1) hue-rotate(178deg) saturate(1.8) brightness(0.8);
+  --mapa-mistura: screen;
+  --mapa-ponto-anel: none;
+  --mapa-atrib-bg: rgba(13, 17, 22, 0.8);
+  --glow-heroi: 0 0 24px var(--letreiro-halo);
+  --brilho-segmento: 0 0 6px var(--letreiro-halo);
+  --brilho-segmento-grande: 0 0 10px var(--letreiro-halo);
+  --brilho-funil-heroi: 0 0 28px -4px rgba(245, 166, 35, 0.4);
+  --anel-funil-heroi: rgba(245, 166, 35, 0.55);
+  --brilho-marca: drop-shadow(0 0 3px var(--letreiro-halo));
+  /* movimento */
+  --ease-saida: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-mov: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+:root.light {
+  color-scheme: light;
+  --rua: #f2f4f7;
+  --calcada: #ffffff;
+  --muro: #ffffff;
+  --vitrine: #ffffff;
+  --realce: rgba(18, 25, 38, 0.04);
+  --realce-forte: rgba(18, 25, 38, 0.08);
+  --scrim: rgba(18, 25, 38, 0.36);
+  --tinta-1: #121926;
+  --tinta-2: #3f495a;
+  --tinta-3: #586274;
+  --tinta-4: #949ca8;
+  --fio-suave: rgba(18, 25, 38, 0.06);
+  --fio: rgba(18, 25, 38, 0.1);
+  --fio-forte: rgba(18, 25, 38, 0.2);
+  --fio-foco: #2050b8;
+  --letreiro: #c47100;
+  --letreiro-brilho: #e8930c;
+  --letreiro-texto: #8f5200;
+  --numero-heroi: #8f5200;
+  --letreiro-suave: rgba(232, 147, 12, 0.14);
+  --letreiro-halo: rgba(196, 113, 0, 0.3);
+  --envio-hover: #3be07f;
+  --envio-ativo: #1fb85a;
+  --envio-borda: #12803d;
+  --envio-texto: #0b6b31;
+  --envio-suave: rgba(37, 211, 102, 0.14);
+  --envio-anel: var(--envio-texto);
+  --pino: #e5484d;
+  --pino-texto: #b42318;
+  --pino-suave: rgba(229, 72, 77, 0.1);
+  --nevoa: #6b7686;
+  --termo-5: #a35500;
+  --termo-4: #c47100;
+  --termo-3: #a9853f;
+  --termo-2: #8b7a5c;
+  --termo-1: #6b7686;
+  --termo-vazio: rgba(18, 25, 38, 0.1);
+  --ctl-bg: #f7f8fa;
+  --ctl-borda: rgba(18, 25, 38, 0.52);
+  --ctl-borda-hover: rgba(18, 25, 38, 0.68);
+  --ctl-anel: rgba(32, 80, 184, 0.22);
+  --primario: #121926;
+  --primario-hover: #2a3345;
+  --primario-ativo: #3f495a;
+  --sobre-primario: #ffffff;
+  --desab-bg: rgba(18, 25, 38, 0.05);
+  --elev-1: 0 0 0 1px rgba(18, 25, 38, 0.08), 0 1px 2px -1px rgba(18, 25, 38, 0.08), 0 2px 4px rgba(18, 25, 38, 0.04);
+  --elev-2: 0 0 0 1px rgba(18, 25, 38, 0.1), 0 2px 4px -1px rgba(18, 25, 38, 0.08), 0 8px 16px -4px rgba(18, 25, 38, 0.12);
+  --elev-3: 0 0 0 1px rgba(18, 25, 38, 0.12), 0 4px 8px -2px rgba(18, 25, 38, 0.1), 0 16px 32px -8px rgba(18, 25, 38, 0.18);
+  --mapa-filtro: grayscale(0.8) contrast(0.94) brightness(1.03);
+  --mapa-mistura: normal;
+  --mapa-ponto-anel: 0 0 0 1.5px #ffffff, 0 0 0 2.5px rgba(18, 25, 38, 0.55);
+  --mapa-atrib-bg: rgba(255, 255, 255, 0.85);
+  --glow-heroi: none;
+  --brilho-segmento: none;
+  --brilho-segmento-grande: none;
+  --brilho-funil-heroi: none;
+  --anel-funil-heroi: var(--letreiro);
+  --brilho-marca: none;
 }
 
 @theme inline {
-  --color-canvas: var(--canvas);
-  --color-surface: var(--surface);
-  --color-line: var(--line);
-  --color-fg: var(--fg);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --color-warn: var(--warn);
-  --color-danger: var(--danger);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: var(--rua);
+  --color-surface: var(--calcada);
+  --color-surface-2: var(--muro);
+  --color-surface-3: var(--vitrine);
+  --color-hover: var(--realce);
+  --color-selected: var(--realce-forte);
+  --color-line: var(--fio);
+  --color-line-soft: var(--fio-suave);
+  --color-line-strong: var(--fio-forte);
+  --color-focus: var(--fio-foco);
+  --color-fg: var(--tinta-1);
+  --color-muted: var(--tinta-2);
+  --color-subtle: var(--tinta-3);
+  --color-faint: var(--tinta-4);
+  --color-accent: var(--letreiro-texto);
+  --color-warn: var(--letreiro-texto);
+  --color-amber: var(--letreiro);
+  --color-amber-glow: var(--letreiro-brilho);
+  --color-amber-soft: var(--letreiro-suave);
+  --color-hero: var(--numero-heroi);
+  --color-send: var(--envio);
+  --color-send-fg: var(--sobre-envio);
+  --color-sent: var(--envio-texto);
+  --color-sent-soft: var(--envio-suave);
+  --color-danger: var(--pino-texto);
+  --color-pin: var(--pino);
+  --color-pin-soft: var(--pino-suave);
+  --color-fog: var(--nevoa);
+  --color-control: var(--ctl-bg);
+  --color-control-line: var(--ctl-borda);
+  --color-control-line-hover: var(--ctl-borda-hover);
+  --color-primary: var(--primario);
+  --color-primary-fg: var(--sobre-primario);
+  --color-disabled: var(--desab-bg);
+  --radius-badge: 4px;
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-panel: 14px;
+  --shadow-elev-1: var(--elev-1);
+  --shadow-elev-2: var(--elev-2);
+  --shadow-elev-3: var(--elev-3);
+  --font-sans: var(--f-texto), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--f-display), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Escala tipográfica (razão 1,25 sobre 14 px, arredondada à grade de 4 px nos títulos). */
+@theme {
+  --text-heroi: 64px;
+  --text-heroi--line-height: 64px;
+  --text-kpi: 34px;
+  --text-kpi--line-height: 36px;
+  --text-h1: 28px;
+  --text-h1--line-height: 32px;
+  --text-h2: 18px;
+  --text-h2--line-height: 24px;
+  --text-corpo: 14px;
+  --text-corpo--line-height: 21px;
+  --text-forte: 14px;
+  --text-forte--line-height: 20px;
+  --text-numero: 15px;
+  --text-numero--line-height: 20px;
+  --text-botao: 13px;
+  --text-botao--line-height: 16px;
+  --text-botao-md: 14px;
+  --text-botao-md--line-height: 16px;
+  --text-legenda: 12px;
+  --text-legenda--line-height: 16px;
+  --text-mini: 11px;
+  --text-mini--line-height: 14px;
+  --tracking-rotulo: 0.08em;
+  --tracking-legenda: 0.01em;
+  --tracking-titulo: -0.01em;
+  --tracking-heroi: -0.02em;
+}
+
+/* ---------- Utilitários do sistema ---------- */
+
+/* Hover e foco: cor, fundo, borda e sombra em 120 ms; press em 100 ms. Nunca `transition: all`. */
+@utility transicao {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 120ms, 120ms, 120ms, 120ms, 120ms, 100ms;
+  transition-timing-function: var(--ease-saida);
+}
+
+@utility pressiona {
+  &:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: scale(0.97);
+  }
+}
+
+/* Rótulo de seção e cabeçalho de lista: Display 12/16, caixa alta, +0,08em, tinta-3. */
+@utility rotulo {
+  font-family: var(--font-display);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-3);
+}
+
+/* Área de toque mínima de 32 px quando o visual é menor. */
+@utility alvo {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: max(100%, 32px);
+    height: max(100%, 32px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+@utility esqueleto {
+  background-color: var(--realce-forte);
+  border-radius: 4px;
+  animation: respira 1.4s ease-in-out infinite;
+}
+
+@utility spinner {
+  animation: gira 800ms linear infinite;
+}
+
+/* Pesquisa em fila: segmento de 30 % que corre pelo trilho. */
+@utility progresso-fila {
+  width: 30%;
+  animation: fila 1.4s linear infinite;
+}
+
+@keyframes radar-pulso {
+  from {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+@keyframes respira {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes fila {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+@keyframes entra-linha {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes entra-gaveta {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+@keyframes entra-folha {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes entra-dialogo {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes entra-menu {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes aparece {
+  from {
+    opacity: 0;
+  }
 }
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    background-color: var(--canvas);
-    color: var(--fg);
+    background-color: var(--rua);
+    color: var(--tinta-1);
     font-family: var(--font-sans);
-    font-size: 0.875rem;
-    line-height: 1.45;
+    font-size: 14px;
+    line-height: 21px;
+    /* Números tabulares só em elementos numéricos (`tabular-nums`): no texto corrido o tnum alarga vírgulas e pontos. */
+    font-variant-numeric: lining-nums;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-wrap: pretty;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
 
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--fio-foco);
     outline-offset: 2px;
   }
 
-  body:has(dialog[open]) {
+  ::selection {
+    background-color: var(--ctl-anel);
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--tinta-1);
+  }
+
+  body:has(dialog[open]:modal) {
     overflow: hidden;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
+  dialog::backdrop {
+    background-color: var(--scrim);
+    animation: aparece 200ms var(--ease-saida);
+  }
+}
+
+/*
+ * Regras sem camada de propósito: precisam vencer o CSS do Leaflet (que não tem camada)
+ * e os utilitários do Tailwind (ex.: o padding da seta do select).
+ */
+
+/* Select nativo com a seta do sistema visual (a cor acompanha o tema). */
+  select.campo {
+    appearance: none;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238D96A5' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px 16px;
+  }
+  :root.light select.campo {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23586274' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+  select.campo option {
+    background-color: var(--vitrine);
+    color: var(--tinta-1);
+  }
+
+  /* Entradas de overlay (a regra de movimento reduzido troca o deslocamento por opacidade). */
+  .anima-gaveta {
+    animation: entra-gaveta 260ms var(--ease-saida);
+  }
+  .anima-folha {
+    animation: entra-folha 260ms var(--ease-saida);
+  }
+  .anima-dialogo {
+    animation: entra-dialogo 200ms var(--ease-saida);
+  }
+  .anima-menu {
+    animation: entra-menu 160ms var(--ease-saida);
+  }
+  .anima-linha {
+    animation: entra-linha 180ms var(--ease-saida) both;
+  }
+
+  /* ---------- Mapa-radar (Leaflet) ---------- */
+  .radar .leaflet-container {
+    background: var(--rua);
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .radar .leaflet-container:focus-visible {
+    outline: 2px solid var(--fio-foco);
+    outline-offset: -2px;
+  }
+  .radar .leaflet-tile-pane {
+    filter: var(--mapa-filtro);
+  }
+  .radar[data-sem-rede="true"] .leaflet-tile-pane {
+    visibility: hidden;
+  }
+  .radar .leaflet-pane.leaflet-pontos-pane {
+    mix-blend-mode: var(--mapa-mistura);
+  }
+  .radar .leaflet-control-attribution {
+    margin: 0;
+    padding: 2px 8px;
+    border-radius: 6px 0 0 0;
+    background: var(--mapa-atrib-bg);
+    color: var(--tinta-3);
+    font-size: 11px;
+    line-height: 14px;
+  }
+  .radar .leaflet-control-attribution a {
+    color: var(--tinta-3);
+    text-decoration: none;
+  }
+  .radar .leaflet-control-attribution a:hover {
+    color: var(--tinta-1);
+    text-decoration: underline;
+  }
+  @media (max-width: 639px) {
+    .radar .attr-longo {
+      display: none;
     }
+  }
+  .radar .leaflet-tooltip {
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--vitrine);
+    color: var(--tinta-1);
+    box-shadow: var(--elev-3);
+    font-size: 12px;
+    line-height: 16px;
+    white-space: nowrap;
+  }
+  .radar .leaflet-tooltip-top::before {
+    border-top-color: var(--vitrine);
+  }
+
+  /* Ponto selecionado e ponto em destaque (hover na lista): divIcon por cima da camada de canvas. */
+  .ponto-sel,
+  .ponto-hover {
+    border-radius: 50%;
+  }
+  .ponto-sel > span,
+  .ponto-hover > span {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--cor-ponto);
+  }
+  .ponto-sel > span {
+    box-shadow:
+      0 0 0 2px var(--rua),
+      0 0 0 4px var(--tinta-1);
+  }
+  .ponto-sel > span::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 2px solid var(--letreiro-brilho);
+    animation: radar-pulso 2.4s var(--ease-saida) infinite;
+  }
+  :root.light .ponto-sel > span::after {
+    border-color: var(--letreiro);
+  }
+  .ponto-hover > span {
+    box-shadow:
+      0 0 0 3px var(--rua),
+      0 0 0 5px var(--tinta-2);
+  }
+/* fim das regras sem camada */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, background-color, border-color, color !important;
+    transition-duration: 120ms !important;
+  }
+  .ponto-sel > span::after {
+    animation: none !important;
+    transform: scale(1.8);
+    opacity: 0.4;
+  }
+  .esqueleto,
+  .spinner {
+    animation: respira 1.4s ease-in-out infinite !important;
+  }
+  .progresso-fila {
+    animation: none !important;
+    transform: none;
+    width: 40%;
+  }
+  .anima-gaveta,
+  .anima-folha,
+  .anima-dialogo,
+  .anima-menu,
+  .anima-linha {
+    animation: aparece 120ms linear both !important;
   }
 }

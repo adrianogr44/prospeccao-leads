@@ -7,10 +7,11 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 function DashboardFallback() {
   return (
-    <div aria-busy="true" className="space-y-4">
+    <div aria-busy="true" className="space-y-3">
       <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-20 w-full" />
-      <Skeleton className="h-64 w-full" />
+      <Skeleton className="h-60 w-full rounded-panel" />
+      <Skeleton className="h-9 w-full" />
+      <Skeleton className="h-96 w-full rounded-panel" />
     </div>
   );
 }

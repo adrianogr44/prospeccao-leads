@@ -9,6 +9,15 @@ import { scoreColumns } from "@/server/leads/upsert";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+export function GET(_req: NextRequest, { params }: IdContext) {
+  return handle(async () => {
+    const { id } = await params;
+    const row = await db.lead.findUnique({ where: { id }, select: LEAD_SELECT });
+    if (!row) throw new HttpError(404, "Lead não encontrado.");
+    return Response.json(toLeadDTO(row));
+  });
+}
+
 export function PATCH(req: NextRequest, { params }: IdContext) {
   return handle(async () => {
     const { id } = await params;

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { errorMessage, exportPath, exportToSheets, type ExportFormat } from "@/lib/api";
 import type { LeadFilters, MetaResponse, SheetsExportResponse } from "@/lib/contract";
 import { formatNumber } from "@/lib/format";
-import { ChevronDownIcon, DownloadIcon, ExternalIcon } from "../icons";
+import { CheckIcon, ChevronDownIcon, DownloadIcon, ExternalIcon } from "../icons";
 import { Modal } from "../modal";
-import { Button, Field, buttonStyles, inputClass } from "../ui";
+import { Button, Field, inputClass } from "../ui";
 
 const FILE_FORMATS: Array<{ format: ExportFormat; label: string }> = [
   { format: "xlsx", label: "Excel (.xlsx)" },
@@ -14,7 +14,8 @@ const FILE_FORMATS: Array<{ format: ExportFormat; label: string }> = [
   { format: "json", label: "JSON (.json)" },
 ];
 
-const itemClass = "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-surface";
+const itemClass =
+  "flex h-8 w-full items-center gap-2.5 rounded-control px-2.5 text-left text-muted transicao hover:bg-hover hover:text-fg focus-visible:bg-selected focus-visible:text-fg focus-visible:shadow-[inset_0_0_0_2px_var(--fio-foco)] focus-visible:outline-none";
 
 function SheetsDialog({
   filters,
@@ -49,24 +50,28 @@ function SheetsDialog({
     }
   }
 
+  const code = "rounded-badge bg-selected px-1.5 py-0.5 font-mono text-legenda text-fg";
+
   return (
     <Modal title="Exportar para o Google Sheets" onClose={onClose}>
       {(close) =>
         !configured ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <p>
-              A conexão com o Google Sheets ainda não está configurada. Coloque o JSON da conta de serviço do
-              Google na variável <code className="rounded bg-surface px-1">GOOGLE_SERVICE_ACCOUNT_JSON</code> do
-              arquivo <code className="rounded bg-surface px-1">.env</code> e reinicie o sistema.
+              A conexão com o Google Sheets ainda não está configurada. Coloque o JSON da conta de serviço do Google na
+              variável <code className={code}>GOOGLE_SERVICE_ACCOUNT_JSON</code> do arquivo{" "}
+              <code className={code}>.env</code> e reinicie o sistema.
             </p>
-            <Button onClick={close}>Fechar</Button>
+            <div className="flex justify-end">
+              <Button onClick={close}>Fechar</Button>
+            </div>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4" noValidate>
             <p>
               Compartilhe a planilha, com permissão de editor, com este e-mail:
               <br />
-              <code className="mt-1 inline-block rounded bg-surface px-1.5 py-0.5 break-all select-all">
+              <code className={`${code} mt-1 inline-block break-all select-all`}>
                 {meta?.config.serviceAccountEmail ?? "e-mail da conta de serviço indisponível"}
               </code>
             </p>
@@ -84,13 +89,14 @@ function SheetsDialog({
             </Field>
             <div aria-live="polite">
               {result && (
-                <p className="text-accent">
-                  {formatNumber(result.rows)} linhas enviadas para a aba “{result.sheetTitle}”.{" "}
+                <p className="flex flex-wrap items-center gap-1.5 text-fg">
+                  <CheckIcon className="size-4 text-muted" />
+                  {formatNumber(result.rows)} linhas enviadas para a aba “{result.sheetTitle}”.
                   <a
                     href={result.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-medium underline"
+                    className="inline-flex items-center gap-1 font-semibold underline underline-offset-2"
                   >
                     Abrir planilha
                     <ExternalIcon className="size-3" />
@@ -101,8 +107,8 @@ function SheetsDialog({
             </div>
             <div className="flex justify-end gap-2">
               <Button onClick={close}>Fechar</Button>
-              <Button type="submit" variant="primary" disabled={busy}>
-                {busy ? "Enviando…" : "Exportar"}
+              <Button type="submit" variant="primary" loading={busy}>
+                Exportar
               </Button>
             </div>
           </form>
@@ -112,70 +118,112 @@ function SheetsDialog({
   );
 }
 
-export function ExportMenu({ filters, meta }: { filters: LeadFilters; meta: MetaResponse | undefined }) {
+/** Menu de exportação: arquivos do filtro atual e Google Sheets. Setas, Home/End e Esc funcionam. */
+export function ExportMenu({
+  filters,
+  meta,
+  total,
+  compact = false,
+}: {
+  filters: LeadFilters;
+  meta: MetaResponse | undefined;
+  total: number | undefined;
+  /** Só o ícone (celular). */
+  compact?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [sheetsOpen, setSheetsOpen] = useState(false);
   const wrapper = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const onPointer = (event: MouseEvent) => {
+    menu.current?.querySelector<HTMLElement>("[role=menuitem]")?.focus();
+    const onPointer = (event: PointerEvent) => {
       if (!wrapper.current?.contains(event.target as Node)) setOpen(false);
     };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        trigger.current?.focus();
-      }
-    };
-    document.addEventListener("mousedown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
+    document.addEventListener("pointerdown", onPointer);
+    return () => document.removeEventListener("pointerdown", onPointer);
   }, [open]);
+
+  function onMenuKey(event: KeyboardEvent<HTMLDivElement>) {
+    const items = Array.from(menu.current?.querySelectorAll<HTMLElement>("[role=menuitem]") ?? []);
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    const go = (i: number) => items[(i + items.length) % items.length]?.focus();
+    if (event.key === "ArrowDown") go(index + 1);
+    else if (event.key === "ArrowUp") go(index - 1);
+    else if (event.key === "Home") go(0);
+    else if (event.key === "End") go(items.length - 1);
+    else if (event.key === "Escape") {
+      event.stopPropagation();
+      setOpen(false);
+      trigger.current?.focus();
+    } else if (event.key === "Tab") setOpen(false);
+    else return;
+    if (event.key !== "Tab") event.preventDefault();
+  }
 
   return (
     <div ref={wrapper} className="relative">
-      <button
+      <Button
         ref={trigger}
-        type="button"
         aria-expanded={open}
+        aria-haspopup="menu"
         aria-controls="menu-exportar"
+        aria-label={compact ? "Exportar" : undefined}
         onClick={() => setOpen((v) => !v)}
-        className={buttonStyles("secondary")}
+        className={compact ? "w-9 px-0" : undefined}
+        icon={<DownloadIcon />}
       >
-        <DownloadIcon />
-        Exportar
-        <ChevronDownIcon className="size-3.5" />
-      </button>
+        {!compact && (
+          <>
+            Exportar
+            <ChevronDownIcon className="size-3.5 text-subtle" />
+          </>
+        )}
+      </Button>
       {open && (
-        <ul
+        <div
+          ref={menu}
           id="menu-exportar"
-          className="absolute right-0 z-20 mt-1 w-52 rounded-lg border border-line bg-canvas p-1 shadow-sm"
+          role="menu"
+          aria-label="Exportar"
+          onKeyDown={onMenuKey}
+          className="anima-menu absolute top-full right-0 z-40 mt-2 w-60 origin-top-right rounded-card bg-surface-3 p-1 shadow-elev-3"
         >
+          <p className="px-2.5 pt-1.5 pb-2 text-legenda text-subtle">
+            Exporta as {total === undefined ? "" : `${formatNumber(total)} `}empresas do filtro atual
+          </p>
           {FILE_FORMATS.map(({ format, label }) => (
-            <li key={format}>
-              <a href={exportPath(filters, format)} download onClick={() => setOpen(false)} className={itemClass}>
-                {label}
-              </a>
-            </li>
-          ))}
-          <li>
-            <button
-              type="button"
+            <a
+              key={format}
+              role="menuitem"
+              tabIndex={-1}
+              href={exportPath(filters, format)}
+              download
+              onClick={() => setOpen(false)}
               className={itemClass}
-              onClick={() => {
-                setOpen(false);
-                setSheetsOpen(true);
-              }}
             >
-              Google Sheets…
-            </button>
-          </li>
-        </ul>
+              <DownloadIcon className="size-4 text-subtle" />
+              {label}
+            </a>
+          ))}
+          <div role="separator" className="mx-1 my-1 h-px bg-line-soft" />
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              setSheetsOpen(true);
+            }}
+          >
+            <ExternalIcon className="size-4 text-subtle" />
+            Google Sheets…
+          </button>
+        </div>
       )}
       {sheetsOpen && <SheetsDialog filters={filters} meta={meta} onClose={() => setSheetsOpen(false)} />}
     </div>

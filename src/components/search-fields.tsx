@@ -2,8 +2,7 @@
 
 import type { ZodError } from "zod";
 import type { MetaResponse } from "@/lib/contract";
-import { AlertIcon } from "./icons";
-import { Field, inputClass } from "./ui";
+import { Field, inputClass, Notice } from "./ui";
 
 export type FieldErrors = Partial<Record<string, string>>;
 
@@ -36,36 +35,53 @@ export function readForm(form: HTMLFormElement): Record<string, string> {
   return raw;
 }
 
+/** Leva o foco ao primeiro campo (na ordem da tela) que tem erro. */
+export function focusFirstError(form: HTMLFormElement, errors: FieldErrors): void {
+  for (const element of Array.from(form.elements)) {
+    if (
+      (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) &&
+      errors[element.name]
+    ) {
+      element.focus();
+      return;
+    }
+  }
+}
+
 export function GoogleKeyNotice({ config }: { config: MetaResponse["config"] | undefined }) {
   if (!config || config.googlePlaces) return null;
   return (
-    <p role="note" className="flex items-start gap-2 rounded-md border border-warn/40 px-3 py-2 text-warn">
-      <AlertIcon className="mt-0.5 size-4 shrink-0" />
-      <span>
-        A chave do Google Places não está configurada. Pesquisas pelo Google não vão funcionar; a fonte
-        automática usa só o OpenStreetMap.
-      </span>
-    </p>
+    <Notice>
+      A chave do Google Places não está configurada. Pesquisas pelo Google não vão funcionar; a fonte automática
+      usa só o OpenStreetMap.
+    </Notice>
   );
 }
 
+/**
+ * Campos de uma pesquisa, na ordem da tela. Devem ficar dentro de uma grade de 6 colunas (`formGridClass`):
+ * categoria, fonte e palavras-chave ocupam a linha; cidade e UF, raio e limite dividem linhas.
+ */
 export function SearchFields({ errors, prefix }: { errors: FieldErrors; prefix: string }) {
   const id = (name: string) => `${prefix}-${name}`;
   return (
     <>
-      <Field id={id("category")} label="Categoria" error={errors.category} hint="Ex.: dentista, restaurante">
-        {(c) => <input {...c} name="category" required maxLength={80} className={inputClass} />}
+      <Field
+        id={id("category")}
+        label="Categoria"
+        error={errors.category}
+        hint="Ex.: dentista, restaurante"
+        className="col-span-6"
+      >
+        {(c) => <input {...c} name="category" required maxLength={80} autoComplete="off" className={inputClass} />}
       </Field>
-      <Field id={id("keywords")} label="Palavras-chave (opcional)" error={errors.keywords}>
-        {(c) => <input {...c} name="keywords" maxLength={120} className={inputClass} />}
+      <Field id={id("city")} label="Cidade" error={errors.city} className="col-span-4">
+        {(c) => <input {...c} name="city" required maxLength={80} autoComplete="off" className={inputClass} />}
       </Field>
-      <Field id={id("city")} label="Cidade" error={errors.city}>
-        {(c) => <input {...c} name="city" required maxLength={80} className={inputClass} />}
+      <Field id={id("state")} label="Estado (UF)" error={errors.state} className="col-span-2">
+        {(c) => <input {...c} name="state" maxLength={40} autoComplete="off" className={inputClass} placeholder="SP" />}
       </Field>
-      <Field id={id("state")} label="Estado (UF)" error={errors.state}>
-        {(c) => <input {...c} name="state" maxLength={40} className={inputClass} placeholder="SP" />}
-      </Field>
-      <Field id={id("radiusKm")} label="Raio (km)" error={errors.radiusKm}>
+      <Field id={id("radiusKm")} label="Raio (km)" error={errors.radiusKm} className="col-span-3">
         {(c) => (
           <input
             {...c}
@@ -79,16 +95,7 @@ export function SearchFields({ errors, prefix }: { errors: FieldErrors; prefix: 
           />
         )}
       </Field>
-      <Field id={id("provider")} label="Fonte" error={errors.provider}>
-        {(c) => (
-          <select {...c} name="provider" defaultValue="auto" className={inputClass}>
-            <option value="auto">Automática</option>
-            <option value="google">Google</option>
-            <option value="osm">OpenStreetMap</option>
-          </select>
-        )}
-      </Field>
-      <Field id={id("maxLeads")} label="Limite de empresas" error={errors.maxLeads}>
+      <Field id={id("maxLeads")} label="Limite de empresas" error={errors.maxLeads} className="col-span-3">
         {(c) => (
           <input
             {...c}
@@ -101,6 +108,18 @@ export function SearchFields({ errors, prefix }: { errors: FieldErrors; prefix: 
             className={inputClass}
           />
         )}
+      </Field>
+      <Field id={id("provider")} label="Fonte" error={errors.provider} className="col-span-6">
+        {(c) => (
+          <select {...c} name="provider" defaultValue="auto" className={inputClass}>
+            <option value="auto">Automática</option>
+            <option value="google">Google</option>
+            <option value="osm">OpenStreetMap</option>
+          </select>
+        )}
+      </Field>
+      <Field id={id("keywords")} label="Palavras-chave (opcional)" error={errors.keywords} className="col-span-6">
+        {(c) => <input {...c} name="keywords" maxLength={120} autoComplete="off" className={inputClass} />}
       </Field>
     </>
   );
