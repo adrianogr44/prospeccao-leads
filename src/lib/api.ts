@@ -3,6 +3,7 @@ import type {
   LeadDTO,
   LeadFilters,
   LeadListResponse,
+  LeadPointsResponse,
   MetaResponse,
   OutreachSettings,
   ScheduleDTO,
@@ -115,6 +116,8 @@ export const outreachSettingsPath = "/api/settings/outreach";
 export const searchesPath = "/api/searches";
 export const schedulesPath = "/api/schedules";
 export const leadsPath = (params: LeadListParams) => withQuery("/api/leads", params);
+export const leadPath = (id: string) => `/api/leads/${encodeURIComponent(id)}`;
+export const leadPointsPath = (filters: LeadFilters) => withQuery("/api/leads/points", filters);
 export const statsPath = (filters: LeadFilters) => withQuery("/api/stats", filters);
 export const exportPath = (filters: LeadFilters, format: ExportFormat) =>
   withQuery("/api/export", { ...filters, format });
@@ -126,17 +129,19 @@ export const getLeads = (params: LeadListParams, signal?: AbortSignal) =>
   apiGet<LeadListResponse>(leadsPath(params), signal);
 export const getStats = (filters: LeadFilters, signal?: AbortSignal) =>
   apiGet<StatsResponse>(statsPath(filters), signal);
+export const getLeadPoints = (filters: LeadFilters, signal?: AbortSignal) =>
+  apiGet<LeadPointsResponse>(leadPointsPath(filters), signal);
+export const getLead = (id: string, signal?: AbortSignal) => apiGet<LeadDTO>(leadPath(id), signal);
 
 export const saveLeadNotes = (id: string, notes: string | null) =>
-  send<LeadDTO>("PATCH", `/api/leads/${encodeURIComponent(id)}`, { notes });
+  send<LeadDTO>("PATCH", leadPath(id), { notes });
 export const setLeadContacted = (id: string, contacted: boolean) =>
-  send<LeadDTO>("PATCH", `/api/leads/${encodeURIComponent(id)}`, { contacted });
+  send<LeadDTO>("PATCH", leadPath(id), { contacted });
 export const saveLeadWhatsapp = (id: string, whatsapp: string | null) =>
-  send<LeadDTO>("PATCH", `/api/leads/${encodeURIComponent(id)}`, { whatsapp });
-export const saveOutreachSettings =(settings: OutreachSettings) =>
+  send<LeadDTO>("PATCH", leadPath(id), { whatsapp });
+export const saveOutreachSettings = (settings: OutreachSettings) =>
   send<OutreachSettings>("PUT", outreachSettingsPath, settings);
-export const deleteLead = (id: string) =>
-  send<void>("DELETE", `/api/leads/${encodeURIComponent(id)}`);
+export const deleteLead = (id: string) => send<void>("DELETE", leadPath(id));
 
 export const createSearch = (input: SearchInput) => send<SearchDTO>("POST", searchesPath, input);
 export const actOnSearch = (id: string, action: "pause" | "resume") =>

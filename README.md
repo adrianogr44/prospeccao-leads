@@ -1,6 +1,6 @@
 # Prospecção de Leads
 
-Ferramenta local para encontrar empresas que precisam de um site novo. Pesquisa por segmento e cidade, analisa o site de cada empresa, dá uma nota de oportunidade de 1 a 5 estrelas e exporta para planilha.
+Ferramenta local para encontrar empresas que precisam de um site novo. Pesquisa por segmento e cidade, analisa o site de cada empresa, mede a oportunidade em um termômetro (Quente, Aquecida, Morna, Fria, Gelada), mostra tudo em um mapa e abre o WhatsApp com a proposta pronta.
 
 Fontes de dados: **Google Places API** (oficial) e **OpenStreetMap**. Não faz raspagem do Google Maps.
 
@@ -50,7 +50,7 @@ Custo: cada consulta devolve até 20 empresas e é cobrada na faixa mais cara da
 ## Como usar
 
 1. **Pesquisas**: informe categoria, cidade, estado e raio. A pesquisa roda em segundo plano, pode ser pausada e continua sozinha se o sistema for reiniciado.
-2. **Dashboard**: as melhores oportunidades aparecem primeiro. Use os filtros e clique em uma empresa para ver os detalhes e os motivos da nota.
+2. **Dashboard**: responde "quem eu abordo agora?". O funil de prospecção (Encontradas → Precisam de site → Com contato → **Prontas para abordar** → Contatadas) filtra a lista com um clique; o mapa mostra as empresas do filtro, com as quentes em âmbar; a lista abre cada empresa em um painel ao lado, com motivo, destino, mensagem e o botão de envio. Atalhos: `J`/`K` próxima e anterior, `E` enviar, `N` anotar, `C` copiar, `M` recolher o mapa, `/` buscar, `?` lista de atalhos.
 3. **Exportar**: Excel, CSV, JSON ou Google Sheets, sempre com os filtros aplicados.
 4. **Agendamentos**: repete uma pesquisa todo dia, semana ou mês. Só roda com o sistema aberto.
 5. **Enviar proposta**: em cada empresa há um botão que abre o WhatsApp com a mensagem de oferta já escrita. Veja abaixo.
@@ -58,12 +58,12 @@ Custo: cada consulta devolve até 20 empresas e é cobrada na faixa mais cara da
 
 ## Abordagem (botão "Enviar proposta")
 
-O botão aparece na tabela e no painel de detalhe de cada empresa. Ele abre uma conversa no WhatsApp (link `wa.me`) com a mensagem preenchida; quem envia é você. O sistema não dispara mensagens sozinho, porque isso viola os termos do WhatsApp e pode bloquear o número.
+O botão aparece em toda linha da lista (preso à direita) e no painel de cada empresa. Ele abre uma conversa no WhatsApp (link `wa.me`) com a mensagem preenchida; quem envia é você. O sistema não dispara mensagens sozinho, porque isso viola os termos do WhatsApp e pode bloquear o número.
 
 - A frase de abertura muda conforme a situação: sem site, só rede social, site antigo, site fora do ar.
 - A mensagem pode ser editada antes de cada envio, no painel de detalhe.
 - Ao clicar, a empresa fica marcada como "Contatado" (há filtro e opção de desmarcar).
-- Destino, por ordem: WhatsApp publicado pela empresa; celular (WhatsApp não confirmado); e-mail; telefone fixo (só funciona se a empresa usar o fixo no WhatsApp). Sem nenhum contato, resta "Copiar mensagem".
+- Destino, por ordem: WhatsApp publicado pela empresa; celular (WhatsApp não confirmado); e-mail; telefone fixo (só funciona se a empresa usar o fixo no WhatsApp). Sem nenhum contato, o botão vira "Adicionar WhatsApp": o painel tem um campo para colar o número que você encontrar (com atalho de busca no Google), e o envio é liberado na hora. A etapa "sem contato" do funil é a fila para esse trabalho.
 
 Padrões que vêm de fábrica, todos editáveis em Configurações:
 
@@ -80,12 +80,14 @@ Marcadores do modelo de mensagem: `{remetente}`, `{minha_empresa}`, `{empresa}`,
 
 ## Como a nota é calculada
 
-| Situação | Estrelas |
+O score vai de 0 a 100 e vira o termômetro: Quente (85+), Aquecida (65 a 84), Morna (45 a 64), Fria (25 a 44), Gelada (abaixo de 25).
+
+| Situação | Termômetro |
 |---|---|
-| Sem site (confirmado pelo Google), só rede social ou site antigo | 5 |
-| Sem site cadastrado no OpenStreetMap (precisa confirmar) | 4 |
-| Site fora do ar | 4 a 5 |
-| Site moderno | 2 a 3 |
+| Sem site (confirmado pelo Google), só rede social ou site antigo | Quente |
+| Sem site cadastrado no OpenStreetMap (precisa confirmar) | Aquecida |
+| Site fora do ar | Aquecida a Quente |
+| Site moderno | Fria a Morna |
 
 Poucas avaliações, falta de WhatsApp e Instagram sem site aumentam a nota. Os pesos ficam em `src/server/scoring/score.ts`.
 
@@ -117,7 +119,9 @@ npm run typecheck
 npm test
 ```
 
-Documentação em `docs/`: brief, PRD, especificação de interface e arquitetura.
+Documentação em `docs/`: brief, PRD, especificação de interface, arquitetura, e em `docs/design/` a direção visual "Radar noturno" (UX, sistema visual, tema e auditoria). O sistema de design implementado está resumido em `.interface-design/system.md`.
+
+O mapa usa Leaflet com tiles do OpenStreetMap (precisa de internet; sem ela, os pontos aparecem sobre fundo liso).
 
 Estrutura:
 

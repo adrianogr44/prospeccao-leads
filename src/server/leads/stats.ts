@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import type { CountBy, LeadFilters, StatsResponse } from "@/lib/contract";
 import { SITE_STATUSES } from "@/lib/contract";
 import { db } from "../db";
-import { buildLeadWhere, NO_SITE_STATUSES } from "./query";
+import { buildLeadWhere, HAS_CONTACT, NEEDS_SITE, NO_SITE_STATUSES } from "./query";
 
 const STARS = [1, 2, 3, 4, 5];
 
@@ -11,7 +11,13 @@ export async function getStats(filters: LeadFilters): Promise<StatsResponse> {
   const base = buildLeadWhere(filters);
   const and = (extra: Prisma.LeadWhereInput): Prisma.LeadWhereInput => ({ AND: [base, extra] });
 
-  const [total, bySite, byStars, byCity, byCategory, byPlatform, withWhatsapp, instagramOnly] = await Promise.all([
+  // O funil ignora os filtros que ele mesmo aplica, para as etapas não encolherem quando uma é selecionada.
+  const funnelBase = buildLeadWhere({ ...filters, needsSite: undefined, hasContact: undefined, contacted: undefined });
+  const inFunnel = (extra: Prisma.LeadWhereInput): Prisma.LeadWhereInput => ({
+    AND: [funnelBase, { siteStatus: { in: NEEDS_SITE } }, extra],
+  });
+
+  const [total, bySite, byStars, byCity, byCategory, byPlatform, withWhatsapp, instagramOnly, funnel] = await Promise.all([
     db.lead.count({ where: base }),
     db.lead.groupBy({ by: ["siteStatus"], where: base, _count: { _all: true } }),
     db.lead.groupBy({ by: ["stars"], where: base, _count: { _all: true } }),
@@ -38,7 +44,15 @@ export async function getStats(filters: LeadFilters): Promise<StatsResponse> {
     }),
     db.lead.count({ where: and({ whatsapp: { not: null } }) }),
     db.lead.count({ where: and({ instagram: { not: null }, siteStatus: { in: NO_SITE_STATUSES } }) }),
+    Promise.all([
+      db.lead.count({ where: funnelBase }),
+      db.lead.count({ where: inFunnel({}) }),
+      db.lead.count({ where: inFunnel(HAS_CONTACT) }),
+      db.lead.count({ where: inFunnel({ AND: [HAS_CONTACT, { contactedAt: null }] }) }),
+      db.lead.count({ where: inFunnel({ contactedAt: { not: null } }) }),
+    ]),
   ]);
+  const [found, needsSite, reachable, ready, contacted] = funnel;
 
   const siteCount = new Map(bySite.map((r) => [r.siteStatus, r._count._all]));
   const starCount = new Map(byStars.map((r) => [r.stars, r._count._all]));
@@ -65,5 +79,6 @@ export async function getStats(filters: LeadFilters): Promise<StatsResponse> {
     byCity: ranked(byCity, "city"),
     byCategory: ranked(byCategory, "category"),
     byPlatform: ranked(byPlatform, "sitePlatform"),
+    funnel: { found, needsSite, reachable, ready, contacted },
   };
 }

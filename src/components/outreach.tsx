@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
-import { errorMessage, saveLeadWhatsapp, setLeadContacted } from "@/lib/api";
+import { errorMessage, saveLeadWhatsapp } from "@/lib/api";
 import { isPhoneWithAreaCode, PHONE_FORMAT_MESSAGE, type LeadDTO, type OutreachSettings } from "@/lib/contract";
-import { formatDate, onlyDigits } from "@/lib/format";
+import { cx } from "@/lib/cx";
+import { onlyDigits } from "@/lib/format";
 import { buildOutreachMessage, outreachTarget, outreachUrl, type OutreachTarget } from "@/lib/outreach";
-import { CopyIcon, MailIcon, PlusIcon, WhatsappIcon } from "./icons";
-import { Button, buttonStyles, inputClass } from "./ui";
+import { ExternalIcon, MailIcon, PlusIcon, RefreshIcon, WhatsappIcon } from "./icons";
+import { Button, buttonStyles, inputClass, labelClass, Skeleton, type ButtonVariant } from "./ui";
 
-function sendLabel(target: OutreachTarget): string | null {
+/** Rótulo completo do envio (painel). */
+export function sendLabel(target: OutreachTarget): string | null {
   if (target.kind === "whatsapp") {
     if (target.confirmed) return "Enviar proposta no WhatsApp";
     return target.landline ? "Tentar WhatsApp no telefone fixo" : "Tentar WhatsApp no celular";
@@ -16,92 +18,148 @@ function sendLabel(target: OutreachTarget): string | null {
   return target.kind === "email" ? "Enviar proposta por e-mail" : null;
 }
 
-/** WhatsApp abre em nova aba; mailto abre o programa de e-mail sem trocar de página. */
-const linkTarget = (target: OutreachTarget) =>
-  target.kind === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {};
-
-/** Marca como contatado; falha aqui não impede a conversa já aberta. */
-async function markContacted(lead: LeadDTO, onUpdated: (lead: LeadDTO) => void): Promise<string | null> {
-  try {
-    onUpdated(await setLeadContacted(lead.id, true));
-    return null;
-  } catch (e) {
-    return errorMessage(e);
-  }
-}
-
-/** Rótulo curto da tabela; o completo vai no title. */
+/** Rótulo curto da lista; o completo vai no title. */
 function shortLabel(target: OutreachTarget): string {
   if (target.kind === "email") return "Enviar e-mail";
   return target.kind === "whatsapp" && target.confirmed ? "Enviar proposta" : "Tentar WhatsApp";
 }
 
 /**
- * Botão da coluna "Proposta": abre a conversa com a mensagem padrão e marca como contatado.
- * Sem nenhum contato, leva ao painel de detalhe, onde dá para informar o número.
+ * Nome acessível do botão da linha. Leva a empresa: 36 links "Enviar proposta" iguais não dizem nada ao leitor de tela.
+ * Começa pelo texto visível ("Enviar proposta", "Tentar WhatsApp", "Enviar e-mail", "Reenviar").
+ */
+export function rowSendLabel(lead: Pick<LeadDTO, "name">, target: OutreachTarget, contacted: boolean): string | null {
+  if (target.kind === "none") return null;
+  if (target.kind === "email") {
+    return contacted ? `Reenviar proposta para ${lead.name} por e-mail` : `Enviar e-mail para ${lead.name}`;
+  }
+  const newTab = " (abre em nova aba)";
+  if (contacted) return `Reenviar proposta para ${lead.name} no WhatsApp${newTab}`;
+  if (target.confirmed) return `Enviar proposta para ${lead.name} no WhatsApp${newTab}`;
+  return `Tentar WhatsApp para ${lead.name}, ${target.landline ? "telefone fixo" : "celular"}${newTab}`;
+}
+
+/** WhatsApp abre em nova aba; mailto abre o programa de e-mail sem trocar de página. */
+export const linkTarget = (target: OutreachTarget) =>
+  target.kind === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {};
+
+/** Verde só com WhatsApp confirmado e ainda não contatada (regra de uma cor verde por linha). */
+export function sendVariant(lead: LeadDTO, target: OutreachTarget): ButtonVariant {
+  return target.kind === "whatsapp" && target.confirmed && !lead.contactedAt ? "send" : "secondary";
+}
+
+export const SendIcon = ({ target }: { target: OutreachTarget }) =>
+  target.kind === "email" ? <MailIcon /> : <WhatsappIcon />;
+
+/**
+ * Botão de proposta da linha: abre a conversa com a mensagem padrão e avisa o dashboard (`onSend`),
+ * que marca como contatada. Sem contato, abre o painel com o campo de WhatsApp em foco.
+ * `compact`: só ícone, 44 × 44 (celular).
  */
 export function ProposalButton({
   lead,
   settings,
-  onUpdated,
-  onOpen,
+  onSend,
+  onAddWhatsapp,
+  compact = false,
+  tabIndex,
 }: {
   lead: LeadDTO;
   settings: OutreachSettings | undefined;
-  onUpdated: (lead: LeadDTO) => void;
-  onOpen: (lead: LeadDTO) => void;
+  onSend: (lead: LeadDTO) => void;
+  onAddWhatsapp: (lead: LeadDTO) => void;
+  compact?: boolean;
+  tabIndex?: number;
 }) {
-  if (!settings) return null;
+  if (!settings) {
+    return <Skeleton className={compact ? "size-11 rounded-control" : "h-8 w-36 rounded-control"} />;
+  }
   const target = outreachTarget(lead);
   const url = outreachUrl(lead, buildOutreachMessage(lead, settings));
+  const size = compact ? "touch" : "sm";
 
   if (!url || target.kind === "none") {
     return (
-      <Button
-        size="sm"
-        variant="ghost"
-        title="Esta empresa não tem contato publicado. Informe o número para enviar a proposta."
+      <button
+        type="button"
+        tabIndex={tabIndex}
+        title="Sem contato publicado. Informe o WhatsApp para enviar a proposta."
+        aria-label={`Adicionar WhatsApp de ${lead.name}`}
         onClick={(event) => {
           event.stopPropagation();
-          onOpen(lead);
+          onAddWhatsapp(lead);
         }}
+        className={buttonStyles("ghost", size)}
       >
         <PlusIcon />
-        Adicionar WhatsApp
-      </Button>
+        {!compact && "Adicionar WhatsApp"}
+      </button>
     );
   }
 
-  const confirmed = target.kind === "whatsapp" && target.confirmed;
+  const contacted = lead.contactedAt !== null;
+  const text = contacted ? "Reenviar" : shortLabel(target);
   return (
     <a
       href={url}
       {...linkTarget(target)}
+      tabIndex={tabIndex}
+      data-send="row"
+      data-lead-id={lead.id}
       title={sendLabel(target) ?? undefined}
-      className={buttonStyles(confirmed ? "primary" : "secondary", "sm")}
+      aria-label={rowSendLabel(lead, target, contacted) ?? undefined}
+      className={buttonStyles(sendVariant(lead, target), size)}
       onClick={(event: MouseEvent) => {
         event.stopPropagation();
-        void markContacted(lead, onUpdated);
+        onSend(lead);
       }}
     >
-      {target.kind === "email" ? <MailIcon /> : <WhatsappIcon />}
-      {shortLabel(target)}
-      {target.kind === "whatsapp" && <span className="sr-only">(abre em nova aba)</span>}
+      {contacted ? <RefreshIcon /> : <SendIcon target={target} />}
+      {!compact && text}
+    </a>
+  );
+}
+
+/** Busca no Google pelo WhatsApp da empresa. */
+export function googleSearchUrl(lead: Pick<LeadDTO, "name" | "city">): string {
+  return `https://www.google.com/search?q=${encodeURIComponent([lead.name, lead.city, "whatsapp"].filter(Boolean).join(" "))}`;
+}
+
+export function GoogleSearchLink({ lead, className }: { lead: LeadDTO; className?: string }) {
+  return (
+    <a
+      href={googleSearchUrl(lead)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cx("inline-flex items-center gap-1 text-muted underline-offset-2 hover:text-fg hover:underline", className)}
+    >
+      Procurar no Google
+      <ExternalIcon className="size-3" />
+      <span className="sr-only"> (abre em nova aba)</span>
     </a>
   );
 }
 
 /** Número informado à mão, para empresas sem WhatsApp publicado. Remonta quando o número salvo muda. */
-function WhatsappField({ lead, onUpdated }: { lead: LeadDTO; onUpdated: (lead: LeadDTO) => void }) {
+export function WhatsappField({
+  lead,
+  onUpdated,
+  onCancel,
+  autoFocusField = false,
+}: {
+  lead: LeadDTO;
+  onUpdated: (lead: LeadDTO) => void;
+  /** Quando existe, mostra "Cancelar" (campo aberto por "Trocar número"). */
+  onCancel?: () => void;
+  /** Marca o campo para receber o foco quando a folha abre ("Adicionar WhatsApp"). */
+  autoFocusField?: boolean;
+}) {
   const [value, setValue] = useState(lead.whatsapp ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const typed = value.trim();
   const changed = onlyDigits(typed) !== (lead.whatsapp ?? "");
-  const search = `https://www.google.com/search?q=${encodeURIComponent(
-    [lead.name, lead.city, "whatsapp"].filter(Boolean).join(" "),
-  )}`;
 
   async function save() {
     if (typed && !isPhoneWithAreaCode(typed)) {
@@ -121,7 +179,7 @@ function WhatsappField({ lead, onUpdated }: { lead: LeadDTO; onUpdated: (lead: L
 
   return (
     <div>
-      <label htmlFor="outreach-whatsapp" className="mb-1 block text-xs font-medium text-muted">
+      <label htmlFor="outreach-whatsapp" className={labelClass}>
         WhatsApp da empresa
       </label>
       <div className="flex flex-wrap items-center gap-2">
@@ -131,9 +189,11 @@ function WhatsappField({ lead, onUpdated }: { lead: LeadDTO; onUpdated: (lead: L
           inputMode="tel"
           autoComplete="off"
           value={value}
+          data-autofocus={autoFocusField ? "" : undefined}
+          data-dirty={changed ? "true" : undefined}
           placeholder="(19) 99999-8888"
           aria-invalid={error ? true : undefined}
-          aria-describedby="outreach-whatsapp-hint"
+          aria-describedby={error ? "outreach-whatsapp-error" : "outreach-whatsapp-hint"}
           onChange={(event) => {
             setValue(event.target.value);
             setError(null);
@@ -141,166 +201,27 @@ function WhatsappField({ lead, onUpdated }: { lead: LeadDTO; onUpdated: (lead: L
           onKeyDown={(event) => {
             if (event.key === "Enter" && changed) void save();
           }}
-          className={`${inputClass} w-48`}
+          className={cx(inputClass, "w-48 flex-1 max-md:h-11")}
         />
-        <Button onClick={save} disabled={busy || !changed}>
-          {busy ? "Salvando…" : "Salvar número"}
+        <Button className="max-md:h-11" onClick={save} disabled={!changed} loading={busy}>
+          Salvar número
         </Button>
+        {onCancel && (
+          <Button variant="ghost" className="max-md:h-11" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
       </div>
-      <p id="outreach-whatsapp-hint" className="mt-1 text-xs text-muted">
-        {lead.whatsapp ? "Número usado no envio." : "Sem WhatsApp publicado. Cole aqui o número que você encontrar."}{" "}
-        <a
-          href={search}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-accent underline-offset-2 hover:underline"
-        >
-          Procurar no Google
-          <span className="sr-only"> (abre em nova aba)</span>
-        </a>
-      </p>
-      {error && (
-        <p role="alert" className="mt-1 text-xs text-danger">
+      {error ? (
+        <p id="outreach-whatsapp-error" role="alert" className="mt-1 text-legenda text-danger">
           {error}
+        </p>
+      ) : (
+        <p id="outreach-whatsapp-hint" className="mt-1 text-legenda text-subtle">
+          {lead.whatsapp ? "Número usado no envio." : "Cole aqui o número que você encontrar."}{" "}
+          <GoogleSearchLink lead={lead} />
         </p>
       )}
     </div>
-  );
-}
-
-/** Bloco "Abordagem" do painel de detalhe. */
-export function OutreachBlock({
-  lead,
-  settings,
-  settingsError,
-  onUpdated,
-}: {
-  lead: LeadDTO;
-  settings: OutreachSettings | undefined;
-  settingsError: string | null;
-  onUpdated: (lead: LeadDTO) => void;
-}) {
-  // Texto editado só vale para este envio; sem edição, acompanha as configurações.
-  const [edited, setEdited] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const target = outreachTarget(lead);
-  const generated = settings ? buildOutreachMessage(lead, settings) : "";
-  const message = edited ?? generated;
-  const url = settings ? outreachUrl(lead, message) : null;
-  const label = sendLabel(target);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(message);
-      setCopied(true);
-      setError(null);
-    } catch {
-      setError("Não consegui copiar. Selecione o texto e copie com Ctrl+C.");
-    }
-  }
-
-  async function contact(contacted: boolean) {
-    setBusy(true);
-    setError(null);
-    try {
-      onUpdated(await setLeadContacted(lead.id, contacted));
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section aria-labelledby="abordagem" className="rounded-lg border border-line bg-surface p-3">
-      <h3 id="abordagem" className="mb-2 text-xs font-semibold text-muted uppercase">
-        Abordagem
-      </h3>
-
-      {!settings ? (
-        <p className={settingsError ? "text-danger" : "text-muted"} role={settingsError ? "alert" : "status"}>
-          {settingsError ?? "Carregando a mensagem…"}
-        </p>
-      ) : (
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="outreach-message" className="mb-1 block text-xs font-medium text-muted">
-              Mensagem (você pode editar antes de enviar)
-            </label>
-            <textarea
-              id="outreach-message"
-              value={message}
-              rows={9}
-              onChange={(event) => {
-                setEdited(event.target.value);
-                setCopied(false);
-              }}
-              className={`${inputClass} h-auto min-h-40 py-2`}
-            />
-            {edited !== null && edited !== generated && (
-              <Button size="sm" variant="ghost" className="mt-1" onClick={() => setEdited(null)}>
-                Voltar à mensagem padrão
-              </Button>
-            )}
-          </div>
-
-          <WhatsappField key={lead.whatsapp ?? ""} lead={lead} onUpdated={onUpdated} />
-
-          {target.kind === "whatsapp" && !target.confirmed && (
-            <p className="text-warn">
-              {target.landline
-                ? "Telefone fixo; só funciona se a empresa usar esse número no WhatsApp."
-                : "Número de celular; o WhatsApp não foi confirmado."}
-            </p>
-          )}
-          {target.kind === "none" && (
-            <p className="text-warn">
-              Esta empresa não tem contato publicado. Informe o WhatsApp acima para liberar o envio.
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-2">
-            {url && label && (
-              <a
-                href={url}
-                {...linkTarget(target)}
-                className={buttonStyles("primary")}
-                onClick={() => {
-                  void markContacted(lead, onUpdated).then((failure) => failure && setError(failure));
-                }}
-              >
-                {target.kind === "email" ? <MailIcon /> : <WhatsappIcon />}
-                {label}
-                {target.kind === "whatsapp" && <span className="sr-only">(abre em nova aba)</span>}
-              </a>
-            )}
-            <Button variant={url ? "secondary" : "primary"} onClick={copy}>
-              <CopyIcon />
-              Copiar mensagem
-            </Button>
-            <span className="text-xs text-accent" role="status">
-              {copied ? "Copiado" : ""}
-            </span>
-          </div>
-
-          {lead.contactedAt && (
-            <p className="flex flex-wrap items-center gap-2 text-muted">
-              Contatado em {formatDate(lead.contactedAt)}
-              <Button size="sm" variant="ghost" onClick={() => contact(false)} disabled={busy}>
-                Desmarcar
-              </Button>
-            </p>
-          )}
-          {error && (
-            <p role="alert" className="text-xs text-danger">
-              {error}
-            </p>
-          )}
-        </div>
-      )}
-    </section>
   );
 }

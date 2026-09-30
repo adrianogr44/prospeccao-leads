@@ -138,12 +138,6 @@ export const SortIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const StarIcon = (p: IconProps) => (
-  <Svg {...p} filled>
-    <path d="m12 2 3.1 6.6 6.9.7-5.1 4.7 1.5 7L12 17.5 5.6 21l1.5-7L2 9.3l6.9-.7L12 2z" />
-  </Svg>
-);
-
 export const PlusIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 5v14M5 12h14" />
@@ -173,12 +167,6 @@ export const MapPinIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" />
     <circle cx="12" cy="10" r="3" />
-  </Svg>
-);
-
-export const ChartIcon = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M3 3v18h18M8 17v-6M13 17V7M18 17v-3" />
   </Svg>
 );
 
@@ -221,3 +209,117 @@ export const CopyIcon = (p: IconProps) => (
     <path d="M5 15V5a2 2 0 0 1 2-2h10" />
   </Svg>
 );
+
+export const CheckIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </Svg>
+);
+
+export const MinusIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 12h14" />
+  </Svg>
+);
+
+/** Arco de 270°, raio 8; gira com a classe `spinner`. */
+export const SpinnerIcon = ({ className = "size-3.5" }: IconProps) => (
+  <Svg className={`spinner ${className}`}>
+    <path d="M12 4a8 8 0 1 1-8 8" />
+  </Svg>
+);
+
+export const MapIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M9 4 3 6.5v13.5L9 17.5l6 2.5 6-2.5V4L15 6.5 9 4z" />
+    <path d="M9 4v13.5M15 6.5V20" />
+  </Svg>
+);
+
+export const ListIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+  </Svg>
+);
+
+/** Mira: centraliza no ponto selecionado. */
+export const LocateIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="7" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+  </Svg>
+);
+
+export const WifiOffIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M2 2l20 20M8.5 16.4a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 4.2-2.4M19 12.9a10 10 0 0 0-2.1-1.6M2 8.8a15 15 0 0 1 4.3-2.6M22 8.8A15 15 0 0 0 10.7 5M12 20h.01" />
+  </Svg>
+);
+
+export const KeyboardIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M9 13h6M7 16h10" />
+  </Svg>
+);
+
+export const ArrowDownIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 5v14M6 13l6 6 6-6" />
+  </Svg>
+);
+
+export const ArrowUpIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 19V5M6 11l6-6 6 6" />
+  </Svg>
+);
+
+export const CornerDownIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 4v7a4 4 0 0 0 4 4h12M16 11l4 4-4 4" />
+  </Svg>
+);
+
+/**
+ * Marca "Prospecção de Leads": radar com varredura e um blip âmbar.
+ * Traço 1,5; o blip é a única parte âmbar da interface fora de dados.
+ */
+export function RadarIcon({ className = "size-6" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <circle cx="12" cy="12" r="10.25" className="stroke-subtle" />
+      <circle cx="12" cy="12" r="5.5" className="stroke-subtle" strokeOpacity={0.7} />
+      <path d="M12 12 18.5 5.5" className="stroke-fg" strokeWidth={1.75} />
+      <circle cx="16.5" cy="15.5" r="2" className="fill-amber [filter:var(--brilho-marca)]" />
+    </svg>
+  );
+}
+
+/** Ilustração de estado vazio: anéis concêntricos sem blip. */
+export function RadarVazio({ className = "size-24" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 96 96"
+      fill="none"
+      strokeWidth={1.5}
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <circle cx="48" cy="48" r="44" className="stroke-line-strong" />
+      <circle cx="48" cy="48" r="30" className="stroke-line-strong" />
+      <circle cx="48" cy="48" r="16" className="stroke-line-strong" />
+      <circle cx="48" cy="48" r="2.5" className="fill-faint" stroke="none" />
+    </svg>
+  );
+}
