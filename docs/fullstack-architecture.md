@@ -130,6 +130,8 @@ Função pura `scoreLead(lead) → { score, stars, reasons }`. Pesos em um únic
 | `UNKNOWN` | 50 |
 | `OK` | 25 |
 
+Exceção: `NONE` vindo só do OpenStreetMap parte de 65 (4 estrelas), com o motivo "Sem site cadastrado no OpenStreetMap (confirmar)". O OSM raramente registra o site, então a ausência lá é indício e não confirmação.
+
 Ajustes: menos de 20 avaliações +10; sem WhatsApp +10; tem Instagram e não tem site +5; nota ≥ 4,3 com 50+ avaliações +5 (negócio saudável). Fechado permanentemente = 0. Teto 100.
 
 Estrelas: ≥ 85 → 5; ≥ 65 → 4; ≥ 45 → 3; ≥ 25 → 2; abaixo → 1. `reasons` em português, por exemplo "Não tem site", "Site sem versão para celular", "Poucas avaliações (12)".
