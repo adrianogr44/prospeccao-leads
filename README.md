@@ -53,12 +53,37 @@ Custo: cada consulta devolve até 20 empresas e é cobrada na faixa mais cara da
 2. **Dashboard**: as melhores oportunidades aparecem primeiro. Use os filtros e clique em uma empresa para ver os detalhes e os motivos da nota.
 3. **Exportar**: Excel, CSV, JSON ou Google Sheets, sempre com os filtros aplicados.
 4. **Agendamentos**: repete uma pesquisa todo dia, semana ou mês. Só roda com o sistema aberto.
+5. **Enviar proposta**: em cada empresa há um botão que abre o WhatsApp com a mensagem de oferta já escrita. Veja abaixo.
+6. **Configurações**: nome da sua empresa, remetente, planos, custos de hospedagem e domínio, e o modelo da mensagem.
+
+## Abordagem (botão "Enviar proposta")
+
+O botão aparece na tabela e no painel de detalhe de cada empresa. Ele abre uma conversa no WhatsApp (link `wa.me`) com a mensagem preenchida; quem envia é você. O sistema não dispara mensagens sozinho, porque isso viola os termos do WhatsApp e pode bloquear o número.
+
+- A frase de abertura muda conforme a situação: sem site, só rede social, site antigo, site fora do ar.
+- A mensagem pode ser editada antes de cada envio, no painel de detalhe.
+- Ao clicar, a empresa fica marcada como "Contatado" (há filtro e opção de desmarcar).
+- Destino, por ordem: WhatsApp publicado pela empresa; celular (WhatsApp não confirmado); e-mail; telefone fixo (só funciona se a empresa usar o fixo no WhatsApp). Sem nenhum contato, resta "Copiar mensagem".
+
+Padrões que vêm de fábrica, todos editáveis em Configurações:
+
+| Item | Padrão |
+|---|---|
+| Empresa / remetente | LançaSite / Adriano |
+| Oferta | Landing Page Completa por R$ 697, entrega em 7 dias |
+| Incluso no valor | Domínio .com.br e hospedagem do primeiro ano |
+| Custo de referência | Hospedagem R$ 27,96/mês (renovação R$ 39,90/mês) e domínio R$ 40/ano |
+
+A tela de Configurações calcula o custo do primeiro ano e quanto sobra por venda em cada plano.
+
+Marcadores do modelo de mensagem: `{remetente}`, `{minha_empresa}`, `{empresa}`, `{cidade}`, `{categoria}`, `{gancho}`, `{oferta}`, `{preco_inicial}`, `{planos}`, `{prazo}`, `{custos}`, `{hospedagem}`, `{dominio}`.
 
 ## Como a nota é calculada
 
 | Situação | Estrelas |
 |---|---|
-| Sem site, só rede social ou site antigo | 5 |
+| Sem site (confirmado pelo Google), só rede social ou site antigo | 5 |
+| Sem site cadastrado no OpenStreetMap (precisa confirmar) | 4 |
 | Site fora do ar | 4 a 5 |
 | Site moderno | 2 a 3 |
 
@@ -70,7 +95,8 @@ Poucas avaliações, falta de WhatsApp e Instagram sem site aumentam a nota. Os 
 
 - **WhatsApp** só é preenchido quando a empresa publica um link de WhatsApp. Telefone celular aparece como "Celular".
 - **Nome do proprietário** quase nunca está disponível em fontes públicas.
-- **OpenStreetMap** não tem nota nem avaliações e cobre menos empresas pequenas.
+- **OpenStreetMap** não tem nota nem avaliações, cobre menos empresas pequenas e raramente traz telefone ou site. Para prospectar de verdade, configure a chave do Google Places.
+- **Google Places** ainda não foi testado com chave real: a busca pelo Google está implementada e coberta por testes de mapeamento, mas não rodou ao vivo.
 - Os dados do Google devem ser renovados periodicamente (use os agendamentos).
 
 ## Privacidade (LGPD)
