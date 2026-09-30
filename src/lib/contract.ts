@@ -156,14 +156,29 @@ export interface LeadListResponse {
   pageSize: number;
 }
 
+export const PHONE_FORMAT_MESSAGE = "Informe o número com DDD, por exemplo (19) 99999-8888.";
+
+/** DDD + número (10 ou 11 dígitos), com ou sem o 55 na frente. */
+export function isPhoneWithAreaCode(value: string): boolean {
+  const digits = value.replace(/\D/g, "").length;
+  return digits >= 10 && digits <= 13;
+}
+
 export const leadPatchSchema = z
   .object({
     notes: z.string().max(2000).nullable().optional(),
     /** true grava agora como data do contato; false limpa */
     contacted: z.boolean().optional(),
+    /** Número que o usuário encontrou e digitou (DDD + número, com ou sem 55); null apaga */
+    whatsapp: z
+      .string()
+      .trim()
+      .refine((v) => isPhoneWithAreaCode(v), { message: PHONE_FORMAT_MESSAGE })
+      .nullable()
+      .optional(),
   })
-  .refine((v) => v.notes !== undefined || v.contacted !== undefined, {
-    message: "Informe notes ou contacted.",
+  .refine((v) => v.notes !== undefined || v.contacted !== undefined || v.whatsapp !== undefined, {
+    message: "Informe notes, contacted ou whatsapp.",
   });
 
 // ---------- Indicadores ----------
@@ -297,7 +312,7 @@ export interface ApiError {
  *
  * GET    /api/meta                      -> MetaResponse
  * GET    /api/leads?{LeadListQuery}     -> LeadListResponse
- * PATCH  /api/leads/:id   {notes?, contacted?} -> LeadDTO
+ * PATCH  /api/leads/:id   {notes?, contacted?, whatsapp?} -> LeadDTO
  * DELETE /api/leads/:id                 -> 204 (exclui e bloqueia reimportação)
  * GET    /api/settings/outreach         -> OutreachSettings (padrão se nunca salvo)
  * PUT    /api/settings/outreach {OutreachSettings} -> OutreachSettings

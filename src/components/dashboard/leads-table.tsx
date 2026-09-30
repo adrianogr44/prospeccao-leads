@@ -16,13 +16,18 @@ interface Column {
   className?: string;
 }
 
+// A coluna de proposta fica presa à direita (do tablet para cima) para o botão nunca sair da tela.
+// Sombra no lugar de borda: borda em célula fixa some com border-collapse.
+const STICKY_RIGHT = "md:sticky md:right-0 md:shadow-[-1px_0_0_var(--line)]";
+
 const columns: Column[] = [
   { label: "Oportunidade", sort: "score", className: "w-56" },
   { label: "Empresa", sort: "name", className: "w-64" },
   { label: "Local", sort: "city", className: "w-48" },
   { label: "Site", className: "w-40" },
   { label: "Nota", sort: "rating", className: "w-28" },
-  { label: "Contato", className: "w-40" },
+  { label: "Contato", className: "w-28" },
+  { label: "Proposta", className: cx("w-44", STICKY_RIGHT, "md:z-20") },
 ];
 
 function SortableHeader({
@@ -92,7 +97,7 @@ function Row({
   return (
     <tr
       onClick={() => onSelect(lead)}
-      className="cursor-pointer border-b border-line align-top last:border-b-0 hover:bg-surface"
+      className="group cursor-pointer border-b border-line align-top last:border-b-0 hover:bg-surface"
     >
       <td className="px-3 py-2.5">
         <Stars value={lead.stars} />
@@ -139,10 +144,10 @@ function Row({
         )}
       </td>
       <td className="px-3 py-2">
-        <span className="inline-flex items-center gap-0.5">
-          <ContactIcons lead={lead} />
-          <ProposalButton lead={lead} settings={settings} onUpdated={onUpdated} />
-        </span>
+        <ContactIcons lead={lead} />
+      </td>
+      <td className={cx("bg-canvas px-3 py-2 group-hover:bg-surface", STICKY_RIGHT)}>
+        <ProposalButton lead={lead} settings={settings} onUpdated={onUpdated} onOpen={onSelect} />
         {lead.contactedAt && (
           <p className="mt-0.5">
             <Badge tone="accent">Contatado</Badge>
@@ -189,7 +194,7 @@ export function LeadsTable({
         busy && "opacity-60",
       )}
     >
-      <table className="w-full min-w-[60rem] border-collapse text-sm">
+      <table className="w-full min-w-[68rem] border-collapse text-sm">
         <caption className="sr-only">Empresas encontradas</caption>
         <thead>
           <tr>

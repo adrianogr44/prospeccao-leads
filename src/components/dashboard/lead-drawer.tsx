@@ -3,12 +3,12 @@
 import { useState, type ReactNode } from "react";
 import { deleteLead, errorMessage, saveLeadNotes } from "@/lib/api";
 import type { LeadDTO, OutreachSettings } from "@/lib/contract";
-import { formatDateTime, formatNumber, formatRating, externalUrl, hostOf, instagramUrl, whatsappUrl } from "@/lib/format";
-import { ExternalIcon, MapPinIcon, WhatsappIcon } from "../icons";
+import { formatDateTime, formatNumber, formatRating, externalUrl, hostOf, instagramUrl } from "@/lib/format";
+import { ExternalIcon, MapPinIcon } from "../icons";
 import { SiteBadge, Stars } from "../lead-ui";
 import { Modal } from "../modal";
 import { OutreachBlock } from "../outreach";
-import { Badge, Button, buttonStyles, inputClass } from "../ui";
+import { Badge, Button, inputClass } from "../ui";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -157,18 +157,6 @@ export function LeadDrawer({
           <Stars value={lead.stars} />
           <SiteBadge status={lead.siteStatus} />
           {lead.category && <Badge>{lead.category}</Badge>}
-          {lead.whatsapp && (
-            <a
-              href={whatsappUrl(lead.whatsapp)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonStyles("primary", "sm", "ml-auto")}
-            >
-              <WhatsappIcon />
-              Abrir WhatsApp
-              <span className="sr-only">(abre em nova aba)</span>
-            </a>
-          )}
         </div>
 
         <OutreachBlock lead={lead} settings={settings} settingsError={settingsError} onUpdated={onUpdated} />
