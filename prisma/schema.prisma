@@ -1,0 +1,154 @@
+// Banco local SQLite. SQLite não tem enum nem JSON nativos no Prisma:
+// campos de "enum" são String (valores válidos em src/lib/contract.ts)
+// e campos JSON são String serializada.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id         String @id @default(cuid())
+  source     String // "google" | "osm"
+  externalId String // place id do Google ou "node/123" do OSM
+  // Chave para evitar duplicado entre fontes diferentes (nome normalizado + telefone ou coordenada)
+  dedupeKey  String
+
+  name           String
+  category       String?
+  city           String?
+  state          String?
+  neighborhood   String?
+  address        String?
+  postalCode     String?
+  lat            Float?
+  lng            Float?
+  mapsUrl        String?
+  businessStatus String? // "OPERATIONAL" | "CLOSED_TEMPORARILY" | "CLOSED_PERMANENTLY"
+
+  website      String?
+  siteStatus   String  @default("UNKNOWN") // SiteStatus em contract.ts
+  sitePlatform String?
+  siteSignals  String? // JSON: string[] com os sinais da heurística de site antigo
+
+  rating       Float?
+  reviewCount  Int?
+  openingHours String?
+
+  whatsapp      String? // só quando publicado explicitamente (wa.me, contact:whatsapp)
+  phone         String?
+  phoneIsMobile Boolean @default(false)
+  email         String?
+  facebook      String?
+  instagram     String?
+  linkedin      String?
+  tiktok        String?
+  ownerName     String?
+  notes         String?
+  contactedAt   DateTime? // quando a proposta foi enviada; nunca é apagado por nova pesquisa
+
+  score        Int    @default(0) // 0-100
+  stars        Int    @default(1) // 1-5
+  scoreReasons String @default("[]") // JSON: string[]
+
+  fetchedAt  DateTime  @default(now()) // última vez que a fonte foi consultada
+  enrichedAt DateTime? // última análise do site
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  searches SearchLead[]
+
+  @@unique([source, externalId])
+  @@index([dedupeKey])
+  @@index([city, state])
+  @@index([category])
+  @@index([stars, score])
+  @@index([siteStatus])
+}
+
+model Search {
+  id        String  @id @default(cuid())
+  category  String
+  keywords  String?
+  city      String
+  state     String?
+  radiusKm  Float   @default(10)
+  provider  String  @default("auto") // "auto" | "google" | "osm"
+  maxLeads  Int     @default(500)
+
+  status   String  @default("queued") // SearchStatus em contract.ts
+  error    String?
+  // JSON com a fila de células da grade ainda não processadas; permite continuar de onde parou
+  cursor   String?
+
+  foundCount    Int @default(0)
+  newCount      Int @default(0)
+  updatedCount  Int @default(0)
+  requestCount  Int @default(0)
+  enrichedCount Int @default(0)
+
+  scheduleId String?
+  schedule   Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  leads SearchLead[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SearchLead {
+  searchId String
+  leadId   String
+  isNew    Boolean @default(false)
+  search   Search  @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  lead     Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@id([searchId, leadId])
+  @@index([leadId])
+}
+
+model Schedule {
+  id        String  @id @default(cuid())
+  category  String
+  keywords  String?
+  city      String
+  state     String?
+  radiusKm  Float   @default(10)
+  provider  String  @default("auto")
+  maxLeads  Int     @default(500)
+
+  frequency String // "daily" | "weekly" | "monthly"
+  hour      Int     @default(3) // hora local de execução (0-23)
+  active    Boolean @default(true)
+
+  lastRunAt DateTime?
+  nextRunAt DateTime
+  createdAt DateTime  @default(now())
+
+  searches Search[]
+
+  @@index([active, nextRunAt])
+}
+
+// Leads excluídos a pedido (LGPD): nunca são reimportados.
+model Blocked {
+  source     String
+  externalId String
+  createdAt  DateTime @default(now())
+
+  @@id([source, externalId])
+}
+
+// Configurações do app em pares chave/valor (JSON serializado). Hoje: "outreach".
+model Setting {
+  key   String @id
+  value String
+}

@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # Só o próprio servidor acessa: a ferramenta não tem login. Não exponha na internet sem autenticação.
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: "file:/data/prospeccao.db"
+    volumes:
+      - leads-data:/data
+
+volumes:
+  leads-data:
