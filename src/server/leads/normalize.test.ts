@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RawPlace } from "../providers/types";
-import { dedupeKey, isMobileBR, nationalPhoneDigits, normalizeName, normalizePlace, normalizeUrl, stateToUf } from "./normalize";
+import { dedupeKey, isMobileBR, nationalPhoneDigits, normalizeName, normalizePlace, normalizeUrl, stateToUf, isCoordKey } from "./normalize";
 
 const raw = (over: Partial<RawPlace> = {}): RawPlace => ({
   source: "google",
@@ -115,5 +115,13 @@ describe("normalizePlace", () => {
 
   it("descarta lugar sem nome", () => {
     expect(normalizePlace(raw({ name: "   " }))).toBeNull();
+  });
+});
+
+describe("isCoordKey", () => {
+  it("distingue chave por coordenada de chave por telefone", () => {
+    expect(isCoordKey(dedupeKey("Bar do Zé", null, -23.55, -46.64))).toBe(true);
+    expect(isCoordKey(dedupeKey("Bar do Zé", "(19) 3242-8929", -23.55, -46.64))).toBe(false);
+    expect(isCoordKey(dedupeKey("Bar do Zé", null, null, null))).toBe(false);
   });
 });

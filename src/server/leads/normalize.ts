@@ -99,6 +99,11 @@ export function isMobileBR(phone: string | null): boolean {
   return d.length === 11 && d[0] !== "0" && d[2] === "9";
 }
 
+/** A chave usa coordenada (e não telefone): mesmo nome a menos de ~110 m é o mesmo lugar. */
+export function isCoordKey(key: string): boolean {
+  return key.includes(",");
+}
+
 export function dedupeKey(name: string, phone: string | null, lat: number | null, lng: number | null): string {
   const n = normalizeName(name);
   const digits = phone ? nationalPhoneDigits(phone) : "";
