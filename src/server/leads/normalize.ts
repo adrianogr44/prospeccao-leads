@@ -104,6 +104,31 @@ export function isCoordKey(key: string): boolean {
   return key.includes(",");
 }
 
+/** Metros entre duas coordenadas (equirretangular; o erro é desprezível nas distâncias daqui). */
+export function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371000;
+  const rad = Math.PI / 180;
+  const x = (bLng - aLng) * rad * Math.cos(((aLat + bLat) / 2) * rad);
+  const y = (bLat - aLat) * rad;
+  return Math.sqrt(x * x + y * y) * R;
+}
+
+/** Até aqui, dois cadastros de mesmo nome são o mesmo lugar; duas filiais nunca ficam tão perto. */
+export const SAME_PLACE_METERS = 150;
+
+/**
+ * Mesmo lugar cadastrado duas vezes na mesma fonte (no OpenStreetMap, o ponto e o
+ * contorno do prédio): mesma chave e, quando há coordenada nos dois, a poucos metros.
+ */
+export function isSamePlace(
+  a: { dedupeKey: string; lat: number | null; lng: number | null },
+  b: { dedupeKey: string; lat: number | null; lng: number | null },
+): boolean {
+  if (a.dedupeKey !== b.dedupeKey) return false;
+  if (a.lat === null || a.lng === null || b.lat === null || b.lng === null) return isCoordKey(a.dedupeKey);
+  return distanceMeters(a.lat, a.lng, b.lat, b.lng) <= SAME_PLACE_METERS;
+}
+
 export function dedupeKey(name: string, phone: string | null, lat: number | null, lng: number | null): string {
   const n = normalizeName(name);
   const digits = phone ? nationalPhoneDigits(phone) : "";

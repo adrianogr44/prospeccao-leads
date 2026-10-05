@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RawPlace } from "../providers/types";
-import { dedupeKey, isMobileBR, nationalPhoneDigits, normalizeName, normalizePlace, normalizeUrl, stateToUf, isCoordKey } from "./normalize";
+import { dedupeKey, distanceMeters, isMobileBR, isSamePlace, nationalPhoneDigits, normalizeName, normalizePlace, normalizeUrl, stateToUf } from "./normalize";
 
 const raw = (over: Partial<RawPlace> = {}): RawPlace => ({
   source: "google",
@@ -118,10 +118,21 @@ describe("normalizePlace", () => {
   });
 });
 
-describe("isCoordKey", () => {
-  it("distingue chave por coordenada de chave por telefone", () => {
-    expect(isCoordKey(dedupeKey("Bar do Zé", null, -23.55, -46.64))).toBe(true);
-    expect(isCoordKey(dedupeKey("Bar do Zé", "(19) 3242-8929", -23.55, -46.64))).toBe(false);
-    expect(isCoordKey(dedupeKey("Bar do Zé", null, null, null))).toBe(false);
+
+describe("isSamePlace", () => {
+  const key = dedupeKey("Museu X", "(11) 5051-2654", -23.6002, -46.669);
+  it("funde o ponto e o contorno do mesmo lugar, a poucos metros", () => {
+    expect(
+      isSamePlace({ dedupeKey: key, lat: -23.6002079, lng: -46.6690385 }, { dedupeKey: key, lat: -23.6001754, lng: -46.6690308 }),
+    ).toBe(true);
+  });
+  it("não funde filiais que dividem o telefone central", () => {
+    expect(isSamePlace({ dedupeKey: key, lat: -23.6002, lng: -46.669 }, { dedupeKey: key, lat: -23.55, lng: -46.64 })).toBe(false);
+  });
+  it("chaves diferentes nunca fundem", () => {
+    expect(isSamePlace({ dedupeKey: "a|1", lat: 0, lng: 0 }, { dedupeKey: "b|1", lat: 0, lng: 0 })).toBe(false);
+  });
+  it("distância em metros confere", () => {
+    expect(Math.round(distanceMeters(-23.6002079, -46.6690385, -23.6001754, -46.6690308))).toBeLessThan(10);
   });
 });
