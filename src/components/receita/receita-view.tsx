@@ -202,7 +202,7 @@ function NewImportForm({
               maxLength={80}
               autoComplete="off"
               list="cnpj-cidades"
-              defaultValue={meta?.cities[0] ?? ""}
+              placeholder="Campinas"
               className={inputClass}
             />
           )}
@@ -214,7 +214,6 @@ function NewImportForm({
               name="state"
               maxLength={2}
               autoComplete="off"
-              defaultValue={meta?.states[0] ?? ""}
               placeholder="SP"
               className={cx(inputClass, "uppercase")}
             />
