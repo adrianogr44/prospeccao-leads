@@ -14,6 +14,23 @@ export function userAgent(): string {
   return `ProspeccaoLeads/1.0 (+mailto:${contactEmail()})`;
 }
 
+/**
+ * Dados Abertos de CNPJ. O endereço mudou de IP para `dadosabertos.rfb.gov.br` e hoje é um
+ * compartilhamento Nextcloud, então base e token são configuráveis: se a Receita trocar o
+ * link, basta mexer no `.env` (os valores abaixo são os de 05/10/2026).
+ */
+export function cnpjBaseUrl(): string {
+  return (process.env.RECEITA_CNPJ_BASE_URL?.trim() || "https://arquivos.receitafederal.gov.br/public.php/webdav").replace(
+    /\/+$/,
+    "",
+  );
+}
+
+/** Token do compartilhamento público; entra como usuário do HTTP Basic, com senha vazia. */
+export function cnpjShareToken(): string {
+  return process.env.RECEITA_CNPJ_TOKEN?.trim() || "YggdBLfdninEJX9";
+}
+
 export interface ServiceAccount {
   email: string;
   credentials: { client_email: string; private_key: string };

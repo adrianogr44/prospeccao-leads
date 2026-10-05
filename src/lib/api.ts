@@ -1,5 +1,7 @@
 import type {
   ApiError,
+  CnpjImportDTO,
+  CnpjImportInput,
   LeadDTO,
   LeadFilters,
   LeadListResponse,
@@ -112,6 +114,7 @@ function withQuery(path: string, params: object): string {
 // ---------- Caminhos (para uso com useApiGet) ----------
 
 export const metaPath = "/api/meta";
+export const cnpjPath = "/api/cnpj";
 export const outreachSettingsPath = "/api/settings/outreach";
 export const searchesPath = "/api/searches";
 export const schedulesPath = "/api/schedules";
@@ -156,3 +159,7 @@ export const deleteSchedule = (id: string) =>
 
 export const exportToSheets = (spreadsheet: string, filters: LeadFilters) =>
   send<SheetsExportResponse>("POST", "/api/export/sheets", { spreadsheet, filters });
+
+export const createCnpjImport = (input: CnpjImportInput) => send<CnpjImportDTO>("POST", cnpjPath, input);
+export const actOnCnpjImport = (id: string, action: "pause" | "resume") =>
+  send<CnpjImportDTO>("POST", `${cnpjPath}/${encodeURIComponent(id)}`, { action });

@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/lib/cx";
-import { CalendarIcon, DashboardIcon, RadarIcon, SearchIcon, SettingsIcon } from "./icons";
+import { CalendarIcon, DashboardIcon, DatabaseIcon, RadarIcon, SearchIcon, SettingsIcon } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
 
 const links = [
   { href: "/", label: "Dashboard", Icon: DashboardIcon },
   { href: "/pesquisas", label: "Pesquisas", Icon: SearchIcon },
   { href: "/agendamentos", label: "Agendamentos", Icon: CalendarIcon },
+  { href: "/receita", label: "Receita", Icon: DatabaseIcon },
   { href: "/configuracoes", label: "Configurações", Icon: SettingsIcon },
 ] as const;
 
@@ -78,7 +79,7 @@ export function Sidebar() {
         aria-label="Principal"
         className="fixed inset-x-0 bottom-0 z-30 h-14 border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] md:hidden"
       >
-        <ul className="grid h-full grid-cols-4">
+        <ul className="grid h-full grid-cols-5">
           {links.map(({ href, label, Icon }) => {
             const active = isActive(href);
             return (
@@ -92,7 +93,13 @@ export function Sidebar() {
                   )}
                 >
                   <Icon className="size-5" />
-                  <span className={cx("font-display text-legenda", active ? "font-semibold" : "font-medium")}>
+                  {/* Cinco abas em 375 px: o rótulo corta em vez de empurrar a grade. */}
+                  <span
+                    className={cx(
+                      "max-w-full truncate px-0.5 font-display text-legenda",
+                      active ? "font-semibold" : "font-medium",
+                    )}
+                  >
                     {label}
                   </span>
                 </Link>

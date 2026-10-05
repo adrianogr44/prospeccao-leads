@@ -188,6 +188,14 @@ export const FilterIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const DatabaseIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <ellipse cx="12" cy="5" rx="8" ry="3" />
+    <path d="M4 5v7c0 1.66 3.58 3 8 3s8-1.34 8-3V5" />
+    <path d="M4 12v7c0 1.66 3.58 3 8 3s8-1.34 8-3v-7" />
+  </Svg>
+);
+
 export const SettingsIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12M20 18h0" />

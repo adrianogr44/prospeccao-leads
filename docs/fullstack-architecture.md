@@ -49,6 +49,7 @@ src/server/enrich/            fetch-site.ts, analyze.ts (puro), platform.ts (pur
 src/server/scoring/score.ts   puro
 src/server/leads/             normalize.ts (puro), upsert.ts, query.ts, dto.ts
 src/server/jobs/              runner.ts, scheduler.ts
+src/server/cnpj/              source.ts, unzip.ts, parse.ts (puro), match.ts (puro), import.ts, enrich.ts, runner.ts, dto.ts
 src/server/export/            rows.ts, csv.ts, xlsx.ts, sheets.ts
 src/instrumentation.ts        ao subir o servidor: retoma pesquisas e liga o agendador
 docs/                         brief, PRD, specs, épicos, stories
@@ -162,7 +163,31 @@ Mesmas colunas em todos os formatos, cabeçalhos em português. CSV com BOM UTF-
 - Dados tratados: informações comerciais que a própria empresa publicou. Base legal: legítimo interesse para prospecção B2B. Excluir um lead remove os dados e bloqueia a reimportação (atende pedido de remoção).
 - Saída escapada pelo React; links externos com `rel="noopener noreferrer"`.
 
-## 12. Evolução
+## 12. Enriquecimento pela base de CNPJ (Story 1.6)
+
+Fonte: Dados Abertos de CNPJ da Receita Federal. O endereço mudou de IP para `dadosabertos.rfb.gov.br` e hoje é um compartilhamento Nextcloud; o acervo sai pelo WebDAV do link público, com o token do compartilhamento como usuário do HTTP Basic e senha vazia:
+
+```
+GET https://arquivos.receitafederal.gov.br/public.php/webdav/{AAAA-MM}/{Arquivo}.zip
+```
+
+Base e token ficam em `server/config.ts` e podem vir do `.env` (`RECEITA_CNPJ_BASE_URL`, `RECEITA_CNPJ_TOKEN`), porque já mudaram duas vezes. O mês mais recente é descoberto por HEAD em `Municipios.zip`, do mês atual para trás (a listagem do diretório exigiria PROPFIND).
+
+Formato (confirmado nos arquivos de 2026-09 e no layout oficial `gov.br/receitafederal/dados/cnpj-metadados.pdf`): um CSV por .zip, separador `;`, latin1, quebra `\n`, sem cabeçalho, **todos** os campos entre aspas duplas. `Estabelecimentos*` tem 30 colunas, `Empresas*` 7, `Municipios` 2 (código próprio da Receita, não o do IBGE — Campinas é 6291 — e sem UF).
+
+**Leitura em fluxo, sem dependência nova.** Cada .zip tem uma entrada em deflate. `cnpj/unzip.ts` descarta o cabeçalho local (`PK\x03\x04`) e manda o resto para `zlib.createInflateRaw`, que termina sozinho no fim do fluxo deflate — então não é preciso o índice central nem o tamanho descompactado, e o CSV é consumido **enquanto baixa**. Nada é gravado em disco e nada é acumulado na memória: as linhas saem em lotes de 2.000 e só as dos municípios pedidos chegam ao banco. Usa `pipe` em vez de `pipeline`/`compose` de propósito — o inflate acaba antes do fim do arquivo, e `pipeline` trataria isso como cancelamento.
+
+**Armazenamento.** `Cnpj` (chave: o CNPJ de 14 dígitos) guarda só os campos usados, com índices `(municipio, nomeNormalizado)` e `(municipio, razaoNormalizada)`. `CnpjMunicipio` é a tabela de domínio. Rodar de novo regrava o lote (apaga e cria), então não duplica.
+
+**Importação retomável.** `CnpjImport` tem o mesmo desenho de `Search`: fila em processo (`cnpj/runner.ts`), status no banco e `cursor` JSON com a etapa (`municipios` → `dump` → `enrich`), os códigos de município, as partes pendentes e o deslocamento do enriquecimento. Grava o cursor a cada parte e a cada lote, e lê o status para a pausa cooperativa. `instrumentation.ts` devolve à fila o que estava `running` quando o servidor caiu.
+
+As 10 partes de `Empresas` são sempre lidas, mesmo numa amostra de `Estabelecimentos`: medido no dump de 2026-09, os CNPJ básicos se espalham uniformemente pelas partes (ler só a parte 1 preencheu 10% das razões sociais). A razão social só é completada para estabelecimento **ativo**, que é o único que o casamento usa — corta ~3/4 das gravações.
+
+**Casamento** (`cnpj/match.ts`, puro e testado). Nome pela mesma normalização do dedupe (`leads/normalize.ts`, sem duplicar a regra), comparado com nome fantasia e razão social dos estabelecimentos ativos do município (a UF desempata homônimos de município). Confiança: nome fantasia idêntico 1,00; razão social idêntica 0,90; nome do lead como começo do nome do CNPJ 0,75; bairro +0,10; logradouro +0,10. **Limiar 0,80** — nome só parecido exige confirmação de endereço. Empate no topo não casa (evita o telefone errado).
+
+**Gravação.** Só campo vazio; WhatsApp, telefone e e-mail existentes nunca são tocados. O telefone vai para `phone` (`+55 DD NNNNNNNNN`, com `phoneIsMobile`) e **nunca** para `whatsapp` — a Receita não confirma WhatsApp. `contactSource` e `contactSourceAt` registram a procedência, que aparece no painel da empresa e na exportação. O score é recalculado depois; o valor não muda (não há peso de telefone), mas a empresa passa de "sem contato" para "Prontas para abordar" no funil, que é calculado pelos filtros.
+
+## 13. Evolução
 
 - PostgreSQL: trocar `provider` no schema e `DATABASE_URL`.
 - Vários usuários ou volume alto: mover o runner para um worker separado com fila (BullMQ) sem mudar providers, enrich e scoring.

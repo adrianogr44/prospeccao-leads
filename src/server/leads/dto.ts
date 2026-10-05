@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import type {
+  ContactSource,
   Frequency,
   LeadDTO,
   LeadSource,
@@ -44,6 +45,8 @@ export const LEAD_SELECT = {
   ownerName: true,
   notes: true,
   contactedAt: true,
+  contactSource: true,
+  contactSourceAt: true,
   score: true,
   stars: true,
   scoreReasons: true,
@@ -96,6 +99,8 @@ export function toLeadDTO(row: LeadRow): LeadDTO {
     ownerName: row.ownerName,
     notes: row.notes,
     contactedAt: row.contactedAt?.toISOString() ?? null,
+    contactSource: (row.contactSource as ContactSource | null) ?? null,
+    contactSourceAt: row.contactSourceAt?.toISOString() ?? null,
     score: row.score,
     stars: row.stars,
     scoreReasons: parseStringArray(row.scoreReasons),

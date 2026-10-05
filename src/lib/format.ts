@@ -13,6 +13,7 @@ const dateTimeFormat = new Intl.DateTimeFormat("pt-BR", {
 
 const dateFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const dayMonthFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
+const monthYearFormat = new Intl.DateTimeFormat("pt-BR", { month: "2-digit", year: "numeric" });
 const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 /** "30/09" */
@@ -20,6 +21,13 @@ export function formatDayMonth(iso: string | null): string {
   if (!iso) return "";
   const date = new Date(iso);
   return Number.isNaN(date.getTime()) ? "" : dayMonthFormat.format(date);
+}
+
+/** "09/2026" — idade de um dado mensal, como o dump da Receita */
+export function formatMonthYear(iso: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "" : monthYearFormat.format(date);
 }
 
 /** "14:32" */

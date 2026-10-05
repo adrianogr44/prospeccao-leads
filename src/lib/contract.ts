@@ -35,6 +35,21 @@ export type LeadSource = "google" | "osm";
 export const FREQUENCIES = ["daily", "weekly", "monthly"] as const;
 export type Frequency = (typeof FREQUENCIES)[number];
 
+/** Origem de um contato que não veio da própria fonte do lead (Story 1.6). */
+export const CONTACT_SOURCES = ["receita"] as const;
+export type ContactSource = (typeof CONTACT_SOURCES)[number];
+
+export const CONTACT_SOURCE_LABEL: Record<ContactSource, string> = {
+  receita: "Receita Federal",
+};
+
+/**
+ * Aviso de LGPD mostrado junto do contato vindo da Receita: para MEI e empresário individual
+ * o telefone do cadastro pode ser pessoal.
+ */
+export const CONTACT_SOURCE_NOTE =
+  "Dado cadastral público da Receita Federal; pode estar desatualizado e, em MEI ou empresário individual, ser um número pessoal.";
+
 // ---------- Pesquisa ----------
 
 export const searchInputSchema = z.object({
@@ -102,6 +117,10 @@ export interface LeadDTO {
   notes: string | null;
   /** ISO da marcação "contatado"; null se nunca abordada */
   contactedAt: string | null;
+  /** De onde veio o contato preenchido por enriquecimento externo; null = da própria fonte */
+  contactSource: ContactSource | null;
+  /** ISO do dump que forneceu o contato (idade do dado) */
+  contactSourceAt: string | null;
   score: number;
   stars: number;
   scoreReasons: string[];
@@ -339,6 +358,89 @@ export const outreachSettingsSchema = z.object({
 });
 export type OutreachSettings = z.infer<typeof outreachSettingsSchema>;
 
+// ---------- Enriquecimento pela base de CNPJ (Story 1.6) ----------
+
+/** Mesmas situações da pesquisa: a importação também é uma fila com pausa e retomada. */
+export type CnpjImportStatus = SearchStatus;
+
+export const CNPJ_IMPORT_STAGES = ["municipios", "dump", "enrich"] as const;
+export type CnpjImportStage = (typeof CNPJ_IMPORT_STAGES)[number];
+
+export const CNPJ_IMPORT_STAGE_LABEL: Record<CnpjImportStage, string> = {
+  municipios: "Baixando a tabela de municípios",
+  dump: "Lendo os estabelecimentos do dump",
+  enrich: "Cruzando com as empresas da lista",
+};
+
+/** O dump é publicado em 10 partes por conjunto de arquivos. */
+export const CNPJ_DUMP_PARTS = 10;
+
+export const cnpjCitySchema = z.object({
+  city: z.string().trim().min(2, "Informe a cidade.").max(80),
+  /** UF; a tabela de municípios da Receita não traz UF, então ela desempata homônimos. */
+  state: z.string().trim().length(2, "Use a sigla de 2 letras.").toUpperCase().nullable().default(null),
+});
+
+export const cnpjImportInputSchema = z.object({
+  cities: z.array(cnpjCitySchema).min(1, "Informe pelo menos uma cidade.").max(20),
+  /** AAAA-MM. Ausente: o mês mais recente publicado pela Receita. */
+  dumpMonth: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Use o formato AAAA-MM.")
+    .optional(),
+  /**
+   * Partes do dump a ler (0 a 9). Ausente: todas. Uma parte só serve para experimentar
+   * sem baixar os ~5 GB de `Estabelecimentos*.zip`.
+   */
+  parts: z.array(z.coerce.number().int().min(0).max(CNPJ_DUMP_PARTS - 1)).max(CNPJ_DUMP_PARTS).optional(),
+  /**
+   * Só cruzar de novo, usando os estabelecimentos que já estão na base local — nada do dump é
+   * baixado. Serve para novos leads ou para refazer o cruzamento sem repetir os ~6,5 GB.
+   */
+  skipDump: z.boolean().default(false),
+});
+export type CnpjImportInput = z.infer<typeof cnpjImportInputSchema>;
+
+export const cnpjImportActionSchema = searchActionSchema;
+
+export interface CnpjImportDTO {
+  id: string;
+  dumpMonth: string;
+  cities: Array<{ city: string; state: string | null }>;
+  parts: number[];
+  status: CnpjImportStatus;
+  stage: CnpjImportStage | null;
+  error: string | null;
+  /** Cidades que não existem na tabela de municípios da Receita */
+  unknownCities: string[];
+  /** 0-100, estimado pelas etapas e partes já concluídas */
+  progress: number;
+  /** Linhas lidas do dump (todos os municípios) */
+  scannedCount: number;
+  /** Estabelecimentos gravados (só os municípios pedidos) */
+  savedCount: number;
+  examinedCount: number;
+  matchedCount: number;
+  phoneCount: number;
+  emailCount: number;
+  /** Leads com mais de um candidato e sem desempate: não recebem contato */
+  ambiguousCount: number;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface CnpjStatusResponse {
+  /** Estabelecimentos ativos já na base local */
+  establishments: number;
+  /** Mês do dump importado mais recente; null = nunca importado */
+  dumpMonth: string | null;
+  /** Leads com contato vindo da Receita */
+  enrichedLeads: number;
+  imports: CnpjImportDTO[];
+}
+
 // ---------- Erro padrão ----------
 
 export interface ApiError {
@@ -368,6 +470,9 @@ export interface ApiError {
  * POST   /api/schedules   {ScheduleInput} -> ScheduleDTO (201)
  * PATCH  /api/schedules/:id {active}    -> ScheduleDTO
  * DELETE /api/schedules/:id             -> 204
+ * GET    /api/cnpj                      -> CnpjStatusResponse
+ * POST   /api/cnpj    {CnpjImportInput} -> CnpjImportDTO (201, já enfileirada)
+ * POST   /api/cnpj/:id {action}         -> CnpjImportDTO (pause | resume)
  *
  * Erros: status 4xx/5xx com corpo ApiError.
  */

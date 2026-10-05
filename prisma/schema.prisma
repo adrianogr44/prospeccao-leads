@@ -51,6 +51,11 @@ model Lead {
   notes         String?
   contactedAt   DateTime? // quando a proposta foi enviada; nunca é apagado por nova pesquisa
 
+  // Procedência do contato preenchido por enriquecimento externo (ContactSource em contract.ts).
+  // Dado cadastral: pode estar desatualizado, então a interface identifica a origem e a data do dump.
+  contactSource   String? // "receita" | null
+  contactSourceAt DateTime? // data do dump que forneceu o contato
+
   score        Int    @default(0) // 0-100
   stars        Int    @default(1) // 1-5
   scoreReasons String @default("[]") // JSON: string[]
@@ -151,4 +156,90 @@ model Blocked {
 model Setting {
   key   String @id
   value String
+}
+
+// ---------- Dados Abertos de CNPJ da Receita Federal (Story 1.6) ----------
+
+/**
+ * Estabelecimentos dos municípios importados. Só os campos usados no casamento e no
+ * enriquecimento; o resto do dump é descartado durante a leitura em fluxo.
+ */
+model Cnpj {
+  cnpj String @id // 14 dígitos: básico + ordem + dígito verificador
+
+  razaoSocial  String? // vem do arquivo Empresas (pelo CNPJ básico)
+  nomeFantasia String?
+  // Nome comparável (normalizeName): fantasia e razão social, para o índice do casamento
+  nomeNormalizado  String
+  razaoNormalizada String
+
+  municipio String // código de município da Receita (não é o do IBGE)
+  uf        String
+
+  bairro        String?
+  logradouro    String?
+  numero        String?
+  cep           String?
+  cnaePrincipal String?
+  situacao      String? // 01 nula, 02 ativa, 03 suspensa, 04 inapta, 08 baixada
+
+  phone  String? // "+55 DD NNNNNNNNN" montado a partir de DDD + telefone 1
+  phone2 String?
+  email  String?
+
+  /** Mês do dump de onde a linha veio, no formato AAAA-MM. */
+  dumpMonth  String
+  importedAt DateTime @default(now())
+
+  @@index([municipio, nomeNormalizado])
+  @@index([municipio, razaoNormalizada])
+}
+
+/** Tabela de municípios da Receita (arquivo Municipios.zip): código → nome. */
+model CnpjMunicipio {
+  codigo          String @id
+  nome            String
+  nomeNormalizado String
+
+  @@index([nomeNormalizado])
+}
+
+/**
+ * Importação do dump + enriquecimento. Mesmo desenho da `Search`: o estado vive no banco,
+ * então pausa, erro ou queda do servidor retomam do `cursor` salvo.
+ */
+model CnpjImport {
+  id String @id @default(cuid())
+
+  /** Mês do dump (AAAA-MM). */
+  dumpMonth String
+  /** JSON com o pedido da importação: municípios e partes do dump (`CnpjImportInput` em contract.ts). */
+  cities    String
+
+  status String  @default("queued") // CnpjImportStatus em contract.ts
+  error  String?
+  /** JSON com a etapa atual e a fila de arquivos pendentes; permite continuar de onde parou. */
+  cursor String?
+
+  /** Linhas de estabelecimento gravadas (dos municípios pedidos). */
+  savedCount    Int @default(0)
+  /** Linhas lidas do dump (todos os municípios). */
+  scannedCount  Int @default(0)
+  /** Leads examinados no enriquecimento. */
+  examinedCount Int @default(0)
+  /** Leads que casaram com um estabelecimento. */
+  matchedCount  Int @default(0)
+  /** Leads que ganharam telefone. */
+  phoneCount    Int @default(0)
+  /** Leads que ganharam e-mail. */
+  emailCount    Int @default(0)
+  /** Leads com mais de um candidato e sem desempate (não recebem contato). */
+  ambiguousCount Int @default(0)
+
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([status])
+  @@index([createdAt])
 }

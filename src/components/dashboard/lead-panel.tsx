@@ -2,12 +2,19 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteLead, errorMessage, saveLeadNotes } from "@/lib/api";
-import { SITE_STATUS_LABEL, type LeadDTO, type OutreachSettings } from "@/lib/contract";
+import {
+  CONTACT_SOURCE_LABEL,
+  CONTACT_SOURCE_NOTE,
+  SITE_STATUS_LABEL,
+  type LeadDTO,
+  type OutreachSettings,
+} from "@/lib/contract";
 import { cx } from "@/lib/cx";
 import {
   externalUrl,
   formatDateTime,
   formatDayMonth,
+  formatMonthYear,
   formatNumber,
   formatPhone,
   formatRating,
@@ -62,6 +69,23 @@ function ExtLink({ href, children, className }: { href: string; children: ReactN
       <ExternalIcon className="size-3 text-subtle" />
       <span className="sr-only">(abre em nova aba)</span>
     </a>
+  );
+}
+
+/**
+ * Procedência do contato vindo de base pública (Story 1.6): o número não foi publicado pela
+ * empresa, é cadastro da Receita — pode estar velho e, em MEI, ser pessoal.
+ */
+function ContactSourceNote({ lead, className }: { lead: LeadDTO; className?: string }) {
+  if (!lead.contactSource) return null;
+  const source = CONTACT_SOURCE_LABEL[lead.contactSource];
+  const when = lead.contactSourceAt ? formatMonthYear(lead.contactSourceAt) : null;
+  return (
+    <span className={cx("block text-legenda text-muted", className)}>
+      {source}
+      {when && ` · dados de ${when}`}
+      <span className="block text-subtle">{CONTACT_SOURCE_NOTE}</span>
+    </span>
   );
 }
 
@@ -150,6 +174,7 @@ function Destination({
         <p className="min-w-0">
           <span className="font-display text-numero font-semibold text-fg tabular-nums">{line.value}</span>
           <span className="block text-legenda text-muted">{line.note}</span>
+          <ContactSourceNote lead={lead} className="mt-1" />
         </p>
         <ContactIcons lead={lead} />
       </div>
@@ -285,6 +310,11 @@ function Data({ lead }: { lead: LeadDTO }) {
           <span className="text-muted">Não tem</span>
         )}
       </DataRow>
+      {lead.contactSource && (
+        <DataRow label="Origem do contato">
+          <ContactSourceNote lead={lead} />
+        </DataRow>
+      )}
       <DataRow label="WhatsApp">
         {lead.whatsapp ? formatPhone(lead.whatsapp) : <span className="text-muted">Não confirmado</span>}
       </DataRow>

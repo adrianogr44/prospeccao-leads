@@ -1,5 +1,5 @@
 import type { LeadDTO, LeadFilters } from "@/lib/contract";
-import { SITE_STATUS_LABEL } from "@/lib/contract";
+import { CONTACT_SOURCE_LABEL, SITE_STATUS_LABEL } from "@/lib/contract";
 import { db } from "../db";
 import { LEAD_SELECT, toLeadDTO } from "../leads/dto";
 import { buildLeadOrderBy, buildLeadWhere } from "../leads/query";
@@ -30,6 +30,8 @@ export const EXPORT_COLUMNS: ExportColumn[] = [
   { header: "Sinais de site antigo", value: (l) => l.siteSignals.join("; ") },
   { header: "Telefone", value: (l) => l.phone },
   { header: "Telefone é celular", value: (l) => yesNo(l.phoneIsMobile) },
+  { header: "Origem do contato", value: (l) => (l.contactSource ? CONTACT_SOURCE_LABEL[l.contactSource] : null) },
+  { header: "Data do dado da origem", value: (l) => l.contactSourceAt },
   { header: "WhatsApp", value: (l) => l.whatsapp },
   { header: "E-mail", value: (l) => l.email },
   { header: "Instagram", value: (l) => l.instagram },
