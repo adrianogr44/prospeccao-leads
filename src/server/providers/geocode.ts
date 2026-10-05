@@ -5,18 +5,21 @@ import { ProviderError } from "./types";
 export interface GeoPoint {
   lat: number;
   lng: number;
+  /** Nome oficial da cidade (com acento), para não gravar "Sao Paulo" e "São Paulo" como cidades diferentes. */
+  cityName: string;
 }
 
 interface NominatimItem {
   lat: string;
   lon: string;
+  name?: string;
 }
 
 // Nominatim permite 1 requisição por segundo.
 const throttle = createThrottle(1100);
 const cache = new Map<string, GeoPoint>();
 
-async function lookup(query: string): Promise<GeoPoint | null> {
+async function lookup(query: string, fallbackName: string): Promise<GeoPoint | null> {
   await throttle();
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("q", query);
@@ -34,7 +37,8 @@ async function lookup(query: string): Promise<GeoPoint | null> {
   if (!first) return null;
   const lat = Number(first.lat);
   const lng = Number(first.lon);
-  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng, cityName: first.name?.trim() || fallbackName };
 }
 
 /** Centro da cidade. Tenta "cidade, UF, Brasil" e cai para "cidade, Brasil". */
@@ -45,7 +49,7 @@ export async function geocodeCity(city: string, state: string | null): Promise<G
 
   const queries = state ? [`${city}, ${state}, Brasil`, `${city}, Brasil`] : [`${city}, Brasil`];
   for (const q of queries) {
-    const point = await lookup(q);
+    const point = await lookup(q, city);
     if (point) {
       cache.set(key, point);
       return point;
