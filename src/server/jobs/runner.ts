@@ -76,10 +76,14 @@ class Runner {
     const provider = resolveProvider(search.provider as ProviderChoice);
 
     let cursor: SearchCursor | null = parseCursor(search.cursor);
+    let city = search.city;
     if (!cursor) {
       const center = await geocodeCity(search.city, search.state);
+      // Guarda o nome oficial: o usuário pode ter digitado "Sao Paulo" e a cidade não
+      // pode virar duas no filtro. Gravado na pesquisa para valer também na retomada.
+      city = center.cityName;
       cursor = { pending: [{ ...boundsAround(center.lat, center.lng, search.radiusKm), depth: 0 }], done: 0 };
-      await db.search.update({ where: { id }, data: { cursor: serializeCursor(cursor) }, select: { id: true } });
+      await db.search.update({ where: { id }, data: { cursor: serializeCursor(cursor), city }, select: { id: true } });
     }
 
     let found = search.foundCount;
@@ -89,7 +93,7 @@ class Runner {
         cell,
         category: search.category,
         keywords: search.keywords,
-        city: search.city,
+        city,
         state: search.state,
       });
 

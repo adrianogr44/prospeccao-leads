@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import type { SiteStatus } from "@/lib/contract";
 import { db } from "../db";
 import { scoreLead, type ScoreInput } from "../scoring/score";
-import { isMobileBR, type NormalizedPlace } from "./normalize";
+import { isMobileBR, isSamePlace, type NormalizedPlace } from "./normalize";
 import { parseStringArray } from "./dto";
 
 export interface UpsertStats {
@@ -217,19 +217,25 @@ export async function upsertPlaces(searchId: string, places: NormalizedPlace[]):
 
   const candidates = unique.filter((p) => !blockedIds.has(p.externalId));
   const unmatched = candidates.filter((p) => !byExternalId.has(p.externalId));
-  const crossSource = unmatched.length
+  // Sem o `source: { not: ... }` no where: negação junto de `in` grande impede o Prisma de
+  // dividir a consulta e estoura o limite de parâmetros do SQLite. Filtra a fonte em memória.
+  const sameKey = unmatched.length
     ? await db.lead.findMany({
-        where: { source: { not: source }, dedupeKey: { in: unmatched.map((p) => p.dedupeKey) } },
-        select: { ...MERGE_SELECT, dedupeKey: true },
+        where: { dedupeKey: { in: unmatched.map((p) => p.dedupeKey) } },
+        select: { ...MERGE_SELECT, dedupeKey: true, source: true },
       })
     : [];
-  const byDedupeKey = new Map(crossSource.map((l) => [l.dedupeKey, l]));
+  const byDedupeKey = new Map(sameKey.filter((l) => l.source !== source).map((l) => [l.dedupeKey, l]));
+  // Mesma fonte, mesma chave e a poucos metros: é o mesmo lugar cadastrado duas vezes
+  // (no OpenStreetMap, o ponto e o contorno do prédio). A distância evita fundir filiais
+  // que dividem o mesmo telefone central.
+  const samePlaceCandidates = sameKey.filter((l) => l.source === source);
 
   const touched = await db.$transaction(
     async (tx) => {
       const out: Array<{ id: string; created: boolean }> = [];
       for (const p of candidates) {
-        const same = byExternalId.get(p.externalId);
+        const same = byExternalId.get(p.externalId) ?? samePlaceCandidates.find((l) => isSamePlace(l, p));
         const cross = same ? undefined : byDedupeKey.get(p.dedupeKey);
         if (same) {
           await tx.lead.update({ where: { id: same.id }, data: updateFromSameSource(same, p), select: { id: true } });

@@ -9,6 +9,9 @@ import { detectPlatform } from "./platform";
 
 const CONCURRENCY = 5;
 
+/** Teto de ids por consulta; o SQLite aceita 999 parâmetros e cada id é um. */
+const ID_BATCH = 400;
+
 const SELECT = {
   id: true,
   source: true,
@@ -86,10 +89,22 @@ async function enrichOne(lead: Row): Promise<boolean> {
 /** Enriquece, com 5 sites em paralelo, os leads ainda não analisados. Devolve quantos foram analisados. */
 export async function enrichLeads(leadIds: string[]): Promise<number> {
   if (leadIds.length === 0) return 0;
-  const pending = await db.lead.findMany({
-    where: { id: { in: leadIds }, website: { not: null }, siteStatus: "UNKNOWN", enrichedAt: null },
-    select: SELECT,
-  });
+  // Em lotes: `in` grande junto de `not: null` impede o Prisma de dividir a consulta
+  // e estoura o limite de parâmetros do SQLite em células com muitos resultados.
+  const pending: Row[] = [];
+  for (let i = 0; i < leadIds.length; i += ID_BATCH) {
+    pending.push(
+      ...(await db.lead.findMany({
+        where: {
+          id: { in: leadIds.slice(i, i + ID_BATCH) },
+          website: { not: null },
+          siteStatus: "UNKNOWN",
+          enrichedAt: null,
+        },
+        select: SELECT,
+      })),
+    );
+  }
 
   let enriched = 0;
   let next = 0;
